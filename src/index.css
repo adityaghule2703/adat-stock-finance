@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Hide scrollbar for sidebar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile Responsive Utilities */
+@media (max-width: 768px) {
+  /* Smaller text on mobile */
+  .text-xs {
+    font-size: 10px;
+  }
+  
+  /* Better touch targets */
+  button, 
+  .nav-link {
+    min-height: 40px;
+  }
+  
+  /* Smoother scrolling */
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Smooth transitions */
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Better tap highlights on mobile */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: rgba(0, 174, 237, 0.1);
+  }
+}
+
+/* Prevent scrolling on body when sidebar is open */
+.no-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Body font */
+body {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}

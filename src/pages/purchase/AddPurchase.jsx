@@ -1,11 +1,11 @@
 // src/pages/purchase/AddPurchase.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ShoppingCart, ArrowLeft, Save, X, User, Calendar, 
-  Package, Scale, DollarSign, Truck, Users, 
-  AlertCircle, CheckCircle, Plus, Trash2, 
-  ChevronRight, ChevronLeft, 
+import {
+  ShoppingCart, ArrowLeft, Save, X, User, Calendar,
+  Package, Scale, DollarSign, Truck, Users,
+  AlertCircle, CheckCircle, Plus, Trash2,
+  ChevronRight, ChevronLeft,
   ClipboardList, Percent, Briefcase, Landmark,
   TrendingUp, Settings, FileText
 } from 'lucide-react';
@@ -22,7 +22,7 @@ const AddPurchase = () => {
   const [farmers, setFarmers] = useState([]);
   const formTopRef = useRef(null);
   const [loadingFarmers, setLoadingFarmers] = useState(true);
-  
+
   const [formData, setFormData] = useState({
     farmerId: '',
     purchaseDate: new Date().toISOString().split('T')[0],
@@ -103,12 +103,25 @@ const AddPurchase = () => {
 
   useEffect(() => {
     let grossTotal = 0;
-    formData.lines.forEach(line => { grossTotal += calculateLineTotal(line); });
 
-    const totalDeductions = 
+    formData.lines.forEach(line => {
+      grossTotal += calculateLineTotal(line);
+    });
+
+    // Commission Calculation
+    const commissionValue =
+      parseFloat(formData.deductions.commission) || 0;
+
+    const calculatedCommission =
+      formData.deductions.commissionType === 'percent'
+        ? (grossTotal * commissionValue) / 100
+        : commissionValue;
+
+    // Total Deductions
+    const totalDeductions =
       (parseFloat(formData.deductions.transport) || 0) +
       (parseFloat(formData.deductions.labour) || 0) +
-      (parseFloat(formData.deductions.commission) || 0) +
+      calculatedCommission +
       (parseFloat(formData.deductions.storage) || 0) +
       (parseFloat(formData.deductions.returnDeduction) || 0) +
       (parseFloat(formData.deductions.advanceAdjusted) || 0) +
@@ -130,13 +143,13 @@ const AddPurchase = () => {
   const handleLineChange = (index, field, value) => {
     const updatedLines = [...formData.lines];
     updatedLines[index][field] = value;
-    
-    if ((field === 'bags' || field === 'weightPerBag') && 
-        updatedLines[index].bags && updatedLines[index].weightPerBag && 
-        updatedLines[index].pricingType === 'kg') {
+
+    if ((field === 'bags' || field === 'weightPerBag') &&
+      updatedLines[index].bags && updatedLines[index].weightPerBag &&
+      updatedLines[index].pricingType === 'kg') {
       updatedLines[index].actualQty = updatedLines[index].bags * updatedLines[index].weightPerBag;
     }
-    
+
     setFormData(prev => ({ ...prev, lines: updatedLines }));
   };
 
@@ -199,23 +212,23 @@ const AddPurchase = () => {
   };
 
   const handleNext = () => {
-  if (validateStep(currentStep)) {
-    setCurrentStep(currentStep + 1);
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+      setError('');
+      // Scroll to top of form
+      if (formTopRef.current) {
+        formTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+  const handlePrevious = () => {
+    setCurrentStep(currentStep - 1);
     setError('');
     // Scroll to top of form
     if (formTopRef.current) {
       formTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }
-};
-  const handlePrevious = () => {
-  setCurrentStep(currentStep - 1);
-  setError('');
-  // Scroll to top of form
-  if (formTopRef.current) {
-    formTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-};
+  };
 
   const handleSubmit = async () => {
     if (!formData.farmerId) {
@@ -319,7 +332,7 @@ const AddPurchase = () => {
             <p className="text-xs mt-0.5" style={{ color: '#8D6E63' }}>Record a new purchase transaction</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <button onClick={() => navigate('/purchases')} className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border hover:bg-gray-50"
             style={{ borderColor: '#C8E6C9', color: '#8D6E63' }}>
             <X className="w-4 h-4" /> Cancel
@@ -395,7 +408,7 @@ const AddPurchase = () => {
                     </select>
                   </div>
                   {fieldErrors.farmerId && <p className="text-xs text-red-500 mt-1">{fieldErrors.farmerId}</p>}
-                  
+
                   {selectedFarmer && (
                     <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200">
                       <div className="flex justify-between items-start">
@@ -530,7 +543,7 @@ const AddPurchase = () => {
                 </div>
               );
             })}
-            
+
             <button onClick={addLine} className="w-full py-3 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 hover:bg-green-50"
               style={{ borderColor: '#C8E6C9', color: '#2E7D32' }}>
               <Plus className="w-4 h-4" /> Add Another Product
@@ -551,7 +564,7 @@ const AddPurchase = () => {
               </div>
               <div className="p-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  
+
                   {/* TRANSPORT CHARGES */}
                   <div>
                     <Label>TRANSPORT CHARGES</Label>
@@ -585,25 +598,51 @@ const AddPurchase = () => {
                   {/* COMMISSION with Type */}
                   <div>
                     <Label>COMMISSION</Label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="number"
-                          value={formData.deductions.commission}
-                          onChange={(e) => handleDeductionChange('commission', parseFloat(e.target.value))}
-                          placeholder="Commission amount"
-                          className={`${inputClasses} pl-10`}
-                        />
+
+                    <div className="flex gap-2 ">
+                      <div className="flex gap-2 items-center">
+
+                        {/* Commission Input */}
+                        <div className="relative flex-[2] min-w-[180px]">
+
+                          {/* Left Icon */}
+                          {/* <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /> */}
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                            {formData.deductions.commissionType === 'percent' ? '%' : '₹'}
+                          </span>
+
+                          {/* Right Symbol */}
+
+
+                          <input
+                            type="number"
+                            value={formData.deductions.commission}
+                            onChange={(e) =>
+                              handleDeductionChange(
+                                'commission',
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            placeholder={
+                              formData.deductions.commissionType === 'percent'
+                                ? 'Enter commission in %'
+                                : 'Enter commission amount'
+                            }
+                            className={`${inputClasses} pl-10 pr-10`}
+                          />
+                        </div>
+                        <select
+                          value={formData.deductions.commissionType}
+                          onChange={(e) => handleDeductionChange('commissionType', e.target.value)}
+                          className={`${inputClasses} w-28`}
+                        >
+                          <option value="fixed">Fixed (₹)</option>
+                          <option value="percent">Percent (%)</option>
+                        </select>
+
+
+
                       </div>
-                      <select
-                        value={formData.deductions.commissionType}
-                        onChange={(e) => handleDeductionChange('commissionType', e.target.value)}
-                        className={`${inputClasses} w-28`}
-                      >
-                        <option value="fixed">Fixed (₹)</option>
-                        <option value="percent">Percent (%)</option>
-                      </select>
                     </div>
                   </div>
 

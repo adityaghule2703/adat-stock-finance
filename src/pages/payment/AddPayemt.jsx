@@ -91,8 +91,9 @@ const AddPayment = () => {
       
       if (data.success) {
         const pendingPurchases = data.data.filter(purchase => 
-          purchase.amountDue > 0 && (purchase.status === 'saved' || purchase.status === 'partial')
-        );
+  purchase.amountDue > 0 && 
+  ['saved', 'partial', 'draft'].includes(purchase.status)
+);
         
         setPurchases(pendingPurchases);
         

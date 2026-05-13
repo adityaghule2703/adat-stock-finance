@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 /* Hide scrollbar for sidebar */
 .scrollbar-hide::-webkit-scrollbar {
@@ -8,6 +9,93 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Print styles - Hide sidebar, header, and navigation when printing */
+@media print {
+  /* Hide sidebar, header, and navigation elements */
+  header,
+  .sidebar,
+  nav,
+  [class*="Sidebar"],
+  [class*="sidebar"],
+  .fixed,
+  button:not(.print-button),
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Receipt Font */
+  .receipt-font,
+  .receipt-font * {
+    font-family: "Poppins", sans-serif !important;
+    zoom: 1.1;
+  }
+
+  /* Print Receipt Font */
+  @media print {
+    .receipt-font,
+    .receipt-font * {
+      font-family: "Poppins", sans-serif !important;
+      zoom: 1.1;
+    }
+  }
+
+  /* Remove margins and padding from main content */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Remove background colors */
+  body, 
+  div[style*="background"] {
+    background: white !important;
+  }
+
+  /* Ensure all content is visible */
+  .max-w-4xl,
+  .max-w-7xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove shadows and borders */
+  .shadow-lg,
+  .shadow-sm,
+  .border,
+  .border-gray-200 {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Keep colors for receipt only */
+  .print\:bg-orange-600 {
+    background-color: #ea580c !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure all colors print correctly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide scrollbars */
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* Class added to body when printing */
+body.printing header,
+body.printing .sidebar,
+body.printing nav {
+  display: none !important;
 }
 
 /* Mobile Responsive Utilities */
@@ -52,4 +140,158 @@
 /* Body font */
 body {
   font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+/* ==================== MUI DROPDOWN FIXES ==================== */
+
+/* Fix for MUI Autocomplete dropdown z-index */
+.MuiAutocomplete-popper {
+  z-index: 9999 !important;
+}
+
+.MuiPopover-root {
+  z-index: 9999 !important;
+}
+
+.MuiModal-root {
+  z-index: 9999 !important;
+}
+
+/* Ensure dropdown appears above everything */
+.MuiPaper-root.MuiAutocomplete-paper {
+  z-index: 9999 !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+/* Custom scrollbar for Autocomplete dropdown */
+.MuiAutocomplete-paper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.MuiAutocomplete-paper::-webkit-scrollbar-track {
+  background: #E8F5E9;
+  border-radius: 10px;
+}
+
+.MuiAutocomplete-paper::-webkit-scrollbar-thumb {
+  background: #C8E6C9;
+  border-radius: 10px;
+}
+
+.MuiAutocomplete-paper::-webkit-scrollbar-thumb:hover {
+  background: #2E7D32;
+}
+
+/* Custom scrollbar for Select/Menu dropdown */
+.MuiMenu-paper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.MuiMenu-paper::-webkit-scrollbar-track {
+  background: #E8F5E9;
+  border-radius: 10px;
+}
+
+.MuiMenu-paper::-webkit-scrollbar-thumb {
+  background: #C8E6C9;
+  border-radius: 10px;
+}
+
+.MuiMenu-paper::-webkit-scrollbar-thumb:hover {
+  background: #2E7D32;
+}
+
+/* Fix for dialog and backdrop z-index */
+.MuiDialog-container {
+  z-index: 1300 !important;
+}
+
+.MuiBackdrop-root {
+  z-index: 1299 !important;
+}
+
+/* Ensure tooltips appear above everything */
+.MuiTooltip-popper {
+  z-index: 9999 !important;
+}
+
+/* Fix for date picker dropdowns if used */
+.MuiPickersPopper-root {
+  z-index: 9999 !important;
+}
+
+/* Ensure select dropdown options are visible */
+.MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input {
+  z-index: 1;
+}
+
+/* Fix for any other MUI popovers */
+.MuiPopper-root {
+  z-index: 9999 !important;
+}
+
+/* Smooth scrolling for all dropdowns */
+.MuiAutocomplete-listbox,
+.MuiMenu-list,
+.MuiSelect-select {
+  scroll-behavior: smooth;
+}
+
+/* Optional: Hide scrollbar completely for cleaner look (uncomment if needed) */
+/* .MuiAutocomplete-paper {
+  scrollbar-width: thin;
+} */
+
+/* Fix for dropdown being cut off by container overflow */
+.MuiAutocomplete-popper {
+  position: fixed !important;
+  overflow: visible !important;
+}
+
+/* Ensure dropdown has proper box shadow */
+.MuiPaper-root.MuiAutocomplete-paper {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* Style for selected items in dropdown */
+.MuiAutocomplete-option[aria-selected="true"] {
+  background-color: #E8F5E9 !important;
+}
+
+.MuiAutocomplete-option:hover {
+  background-color: #F1F8E9 !important;
+}
+
+/* Style for loading state in Autocomplete */
+.MuiAutocomplete-loading {
+  color: #2E7D32 !important;
+}
+
+/* Fix for input field focus states */
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #2E7D32 !important;
+  border-width: 2px !important;
+}
+
+/* Style for helper text */
+.MuiFormHelperText-root {
+  font-size: 0.7rem !important;
+  margin-top: 4px !important;
+}
+
+/* Ensure dropdown options have proper padding */
+.MuiAutocomplete-option {
+  padding: 8px 12px !important;
+}
+
+/* Style for the dropdown arrow icon */
+.MuiAutocomplete-popupIndicator {
+  color: #C8E6C9 !important;
+}
+
+.MuiAutocomplete-popupIndicator:hover {
+  color: #2E7D32 !important;
 }

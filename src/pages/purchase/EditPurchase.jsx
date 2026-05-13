@@ -1,15 +1,98 @@
 // src/pages/purchase/EditPurchase.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Button,
+  TextField,
+  Stack,
+  Typography,
+  Box,
+  FormControl,
+  Autocomplete,
+  IconButton,
+  Collapse,
+  Alert,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  InputAdornment,
+  CircularProgress
+} from '@mui/material';
 import { 
-  ShoppingCart, ArrowLeft, Save, X, User, Calendar, 
-  Package, Scale, DollarSign, Truck, Users, 
-  AlertCircle, CheckCircle, Plus, Trash2, 
-  ChevronRight, ChevronLeft, 
-  ClipboardList, Percent, Briefcase, Landmark,
-  TrendingUp, Settings, FileText, Loader, Info
-} from 'lucide-react';
+  Add as AddIcon, 
+  Error as ErrorIcon, 
+  Delete as DeleteIcon,
+  Settings,
+  ShoppingCart,
+  Check as CheckIcon,
+  Inventory as PackageIcon,
+  ArrowBack as ArrowBackIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
+import axios from 'axios';
 import BASE_URL from '../../config/Config';
+
+// Color constants
+const COLORS = {
+  primary: '#1B3A1F',
+  primaryLight: '#E8F5E9',
+  primaryDark: '#0E2A12',
+  text: {
+    primary: '#1B5E20',
+    secondary: '#4B5568',
+    tertiary: '#94A3B8',
+    light: '#FFFFFF',
+    lightMuted: 'rgba(255, 255, 255, 0.9)'
+  },
+  background: {
+    white: '#FFFFFF',
+    light: '#F8FFFC',
+    hover: '#F0FDF9',
+    tableHeader: '#1B3A1F'
+  },
+  border: '#E3E8EF'
+};
+
+// Floating Error Alert Component
+const FloatingErrorAlert = ({ error, onClose }) => {
+  if (!error) return null;
+  
+  return (
+    <Collapse in={!!error}>
+      <Alert
+        severity="error"
+        variant="filled"
+        onClose={onClose}
+        icon={<ErrorIcon sx={{ fontSize: '1rem' }} />}
+        sx={{
+          mb: 2,
+          borderRadius: 1.5,
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          '& .MuiAlert-icon': {
+            fontSize: '1rem',
+            alignItems: 'center'
+          },
+          '& .MuiAlert-message': {
+            py: 0.5,
+            fontSize: '0.75rem'
+          },
+          '& .MuiAlert-action': {
+            py: 0,
+            alignItems: 'center'
+          }
+        }}
+      >
+        {error}
+      </Alert>
+    </Collapse>
+  );
+};
 
 const EditPurchase = () => {
   const { id } = useParams();
@@ -20,7 +103,6 @@ const EditPurchase = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
-  const [farmers, setFarmers] = useState([]);
   const [originalPurchase, setOriginalPurchase] = useState(null);
   
   const [formData, setFormData] = useState({
@@ -59,29 +141,35 @@ const EditPurchase = () => {
     { value: 'flat', label: 'Flat' }
   ];
 
+  const commissionTypeOptions = [
+    { value: 'fixed', label: 'Fixed (₹)' },
+    { value: 'percent', label: 'Percent (%)' }
+  ];
+
   const steps = ['Purchase Details', 'Product Lines', 'Deductions & Summary'];
 
   const getToken = () => localStorage.getItem('token');
 
-  // Fetch farmers
-  const fetchFarmers = async () => {
-    try {
-      const token = getToken();
-      const response = await fetch(`${BASE_URL}/farmers`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) setFarmers(data.data);
-    } catch (error) {
-      console.error('Error fetching farmers:', error);
-    }
+  // Calculate line total
+  const calculateLineTotal = (line) => {
+    let quantity = line.actualQty || 0;
+    if (line.pricingType === 'quintal') quantity = (line.actualQty || 0) * 100;
+    const netQty = quantity - (line.qualityDeduction || 0);
+    return netQty * (line.rate || 0);
+  };
+
+  // Calculate billed quantity
+  const calculateBilledQty = (line) => {
+    let quantity = line.actualQty || 0;
+    if (line.pricingType === 'quintal') quantity = (line.actualQty || 0) * 100;
+    return quantity - (line.qualityDeduction || 0);
   };
 
   // Fetch purchase details
   const fetchPurchase = async () => {
     try {
       const token = getToken();
-      const response = await fetch(`${BASE_URL}/purchases/${id}`, {
+      const response = await axios.get(`${BASE_URL}/purchases/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -91,17 +179,16 @@ const EditPurchase = () => {
         return;
       }
 
-      const data = await response.json();
+      const data = response.data;
       if (data.success) {
         const purchase = data.data;
         
         // Check if purchase can be edited (only DRAFT status)
-        // According to API: Only purchases with status 'draft' can be updated via PUT
         if (purchase.status !== 'draft') {
           setError(`This purchase cannot be edited via full update as it is in "${purchase.status}" status. 
             Only "draft" purchases can be fully edited. 
             For "${purchase.status}" status, you can only update status/notes using the Update Status option.`);
-          setTimeout(() => navigate(`/purchases/view/${id}`), 3000);
+          setTimeout(() => navigate('/purchases'), 3000);
           return;
         }
 
@@ -150,22 +237,8 @@ const EditPurchase = () => {
   };
 
   useEffect(() => {
-    fetchFarmers();
-  }, []);
-
-  useEffect(() => {
-    if (farmers.length > 0) {
-      fetchPurchase();
-    }
-  }, [farmers]);
-
-  // Calculate line total
-  const calculateLineTotal = (line) => {
-    let quantity = line.actualQty || 0;
-    if (line.pricingType === 'quintal') quantity = (line.actualQty || 0) * 100;
-    const netQty = quantity - (line.qualityDeduction || 0);
-    return netQty * (line.rate || 0);
-  };
+    fetchPurchase();
+  }, [id]);
 
   // Calculate all totals
   useEffect(() => {
@@ -174,10 +247,16 @@ const EditPurchase = () => {
       grossTotal += calculateLineTotal(line);
     });
 
+    const commissionValue = parseFloat(formData.deductions.commission) || 0;
+    const calculatedCommission =
+      formData.deductions.commissionType === 'percent'
+        ? (grossTotal * commissionValue) / 100
+        : commissionValue;
+
     const totalDeductions = 
       (parseFloat(formData.deductions.transport) || 0) +
       (parseFloat(formData.deductions.labour) || 0) +
-      (parseFloat(formData.deductions.commission) || 0) +
+      calculatedCommission +
       (parseFloat(formData.deductions.storage) || 0) +
       (parseFloat(formData.deductions.returnDeduction) || 0) +
       (parseFloat(formData.deductions.advanceAdjusted) || 0) +
@@ -269,9 +348,14 @@ const EditPurchase = () => {
     setError('');
   };
 
+  const showError = (message) => {
+    setError(message);
+    setTimeout(() => setError(''), 5000);
+  };
+
   const handleSubmit = async () => {
     if (formData.lines.some(line => !line.productName || line.rate <= 0 || line.actualQty <= 0)) {
-      setError('Please complete all product lines');
+      showError('Please complete all product lines');
       return;
     }
 
@@ -281,31 +365,39 @@ const EditPurchase = () => {
     try {
       const token = getToken();
       
-      // Prepare data for PUT request according to API specification
+      // Prepare lines with all required fields including lineTotal and billedQty
       const purchaseData = {
         purchaseDate: formData.purchaseDate,
         lines: formData.lines.map(line => {
+          const quantity = line.actualQty || 0;
+          let qtyInBaseUnit = quantity;
+          if (line.pricingType === 'quintal') {
+            qtyInBaseUnit = quantity * 100;
+          }
+          
+          const billedQty = qtyInBaseUnit - (line.qualityDeduction || 0);
+          const lineTotal = billedQty * (line.rate || 0);
+          
           const lineData = {
             productName: line.productName,
             pricingType: line.pricingType,
-            rate: parseFloat(line.rate) || 0
+            actualQty: parseFloat(line.actualQty) || 0,
+            billedQty: billedQty,
+            rate: parseFloat(line.rate) || 0,
+            lineTotal: lineTotal,
+            qualityDeduction: parseFloat(line.qualityDeduction) || 0,
+            notes: line.notes || ''
           };
           
-          // Add bags and weightPerBag only for kg pricing type with bags
+          // Add bags and weightPerBag for kg pricing type
           if (line.pricingType === 'kg') {
-            if (line.bags && line.bags > 0 && line.weightPerBag && line.weightPerBag > 0) {
+            if (line.bags && line.bags > 0) {
               lineData.bags = parseInt(line.bags) || 0;
-              lineData.weightPerBag = parseInt(line.weightPerBag) || 0;
-            } else {
-              lineData.actualQty = parseFloat(line.actualQty) || 0;
             }
-          } else {
-            lineData.actualQty = parseFloat(line.actualQty) || 0;
+            if (line.weightPerBag && line.weightPerBag > 0) {
+              lineData.weightPerBag = parseInt(line.weightPerBag) || 0;
+            }
           }
-          
-          // Add optional fields
-          if (line.qualityDeduction) lineData.qualityDeduction = parseFloat(line.qualityDeduction) || 0;
-          if (line.notes) lineData.notes = line.notes;
           
           return lineData;
         }),
@@ -327,16 +419,14 @@ const EditPurchase = () => {
       if (formData.deductions.other > 0) purchaseData.deductions.other = parseFloat(formData.deductions.other);
       if (formData.deductions.otherNote) purchaseData.deductions.otherNote = formData.deductions.otherNote;
 
-      const response = await fetch(`${BASE_URL}/purchases/${id}`, {
-        method: 'PUT',
+      console.log('Submitting purchase data:', purchaseData);
+
+      const response = await axios.put(`${BASE_URL}/purchases/${id}`, purchaseData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(purchaseData)
+        }
       });
-
-      const data = await response.json();
 
       if (response.status === 401) {
         localStorage.clear();
@@ -344,15 +434,15 @@ const EditPurchase = () => {
         return;
       }
 
-      if (response.ok && data.success) {
+      if (response.data.success) {
         setSuccess(true);
-        setTimeout(() => navigate(`/purchases/view/${id}`), 2000);
+        setTimeout(() => navigate('/purchases'), 2000);
       } else {
-        setError(data.message || 'Failed to update purchase');
+        showError(response.data.message || 'Failed to update purchase');
       }
     } catch (error) {
       console.error('Error updating purchase:', error);
-      setError('Network error. Please check your connection.');
+      showError(error.response?.data?.message || error.response?.data?.error || 'Network error. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -364,421 +454,735 @@ const EditPurchase = () => {
     }).format(amount || 0);
   };
 
+  // Label component
   const Label = ({ children, required }) => (
-    <label className="block text-xs font-semibold mb-1" style={{ color: '#4B5568' }}>
-      {children} {required && <span className="text-red-500">*</span>}
-    </label>
+    <Typography sx={{ 
+      fontSize: '0.7rem', 
+      fontWeight: 600, 
+      color: COLORS.text.secondary, 
+      letterSpacing: '0.5px',
+      mb: 0.5
+    }}>
+      {children} {required && <span style={{ color: '#EF4444' }}>*</span>}
+    </Typography>
   );
 
-  const inputClasses = "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all bg-white text-sm";
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 1.5,
+      fontSize: '0.75rem',
+      '&:hover fieldset': { borderColor: COLORS.primary },
+      '&.Mui-focused fieldset': { borderColor: COLORS.primary, borderWidth: 1 }
+    },
+    '& .MuiInputBase-input': {
+      py: 1,
+      px: 1.5,
+      fontSize: '0.75rem',
+      color: COLORS.text.primary,
+      '&::placeholder': {
+        color: COLORS.text.tertiary,
+        fontSize: '0.75rem'
+      }
+    }
+  };
 
   if (fetching) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader className="w-8 h-8 animate-spin" style={{ color: '#2E7D32' }} />
-        <span className="ml-2" style={{ color: '#2E7D32' }}>Loading purchase details...</span>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '96vh' }}>
+        <CircularProgress sx={{ color: '#2E7D32' }} />
+        <Typography sx={{ ml: 2, color: '#2E7D32' }}>Loading purchase details...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-shrink-0 flex justify-between items-center flex-wrap gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(`/purchases/view/${id}`)} className="p-2 rounded-lg hover:bg-gray-100">
-            <ArrowLeft className="w-5 h-5" style={{ color: '#2E7D32' }} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: '#1B5E20' }}>Edit Purchase (Full Update)</h1>
-            <p className="text-xs mt-0.5" style={{ color: '#8D6E63' }}>
-              Receipt: {originalPurchase?.receiptNumber} | Status: {originalPurchase?.status}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => navigate(`/purchases/view/${id}`)} className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border hover:bg-gray-50"
-            style={{ borderColor: '#C8E6C9', color: '#8D6E63' }}>
-            <X className="w-4 h-4" /> Cancel
-          </button>
-          {currentStep === 2 && (
-            <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 hover:scale-105 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #2E7D32, #43A047)' }}>
-              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Update Purchase
-            </button>
-          )}
-        </div>
-      </div>
+    <Box sx={{ height: '100%', overflow: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <IconButton 
+          onClick={() => navigate('/purchases')} 
+          sx={{ 
+            p: 1, 
+            borderRadius: 1.5,
+            '&:hover': { bgcolor: COLORS.primaryLight }
+          }}
+        >
+          <ArrowBackIcon sx={{ color: COLORS.primary }} />
+        </IconButton>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.text.primary }}>
+            Edit Purchase
+          </Typography>
+          <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>
+            Receipt: {originalPurchase?.receiptNumber} | Status: {originalPurchase?.status}
+          </Typography>
+        </Box>
+      </Box>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 text-red-500" />
-          <span className="text-xs text-red-600 flex-1 whitespace-pre-line">{error}</span>
-          <button onClick={() => setError('')} className="text-red-500"><X className="w-3 h-3" /></button>
-        </div>
-      )}
+      {/* Floating Error Alert */}
+      <Box sx={{ mb: 2 }}>
+        <FloatingErrorAlert error={error} onClose={() => setError('')} />
+      </Box>
 
+      {/* Success Message */}
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
-          <CheckCircle className="w-4 h-4 text-green-500" />
-          <span className="text-sm text-green-700">Purchase updated successfully! Redirecting...</span>
-        </div>
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+          Purchase updated successfully! Redirecting...
+        </Alert>
       )}
 
       {/* Info Banner */}
-      <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 flex items-center gap-3">
-        <Info className="w-4 h-4 text-blue-500" />
-        <span className="text-xs text-blue-700">
+      <Alert 
+        severity="info" 
+        icon={<InfoIcon />}
+        sx={{ mb: 2, borderRadius: 2 }}
+      >
+        <Typography variant="caption">
           <strong>Note:</strong> Full update mode - You can edit all fields including products, deductions, and amount paid. 
           This will recalculate all totals. Only available for <strong>DRAFT</strong> status purchases.
-        </span>
-      </div>
+        </Typography>
+      </Alert>
 
       {/* Farmer Info Card (Read-only) */}
-      <div className="flex-shrink-0 mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-        <div className="flex items-center gap-2 mb-2">
-          <User className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-semibold text-gray-700">Farmer Information (Read-only)</span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div>
-            <p className="text-xs text-gray-500">Farmer Name</p>
-            <p className="text-sm font-medium text-green-800">{selectedFarmer?.name || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Mobile</p>
-            <p className="text-sm">{selectedFarmer?.mobile || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Pending Dues</p>
-            <p className="text-sm font-medium text-orange-600">{formatCurrency(selectedFarmer?.pendingDues || 0)}</p>
-          </div>
-        </div>
-      </div>
+      <Paper sx={{ p: 2, mb: 3, bgcolor: COLORS.primaryLight, borderRadius: 2 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+          <InfoIcon sx={{ fontSize: '1rem', color: COLORS.primary }} />
+          <Typography variant="caption" sx={{ fontWeight: 600, color: COLORS.primary }}>Farmer Information (Read-only)</Typography>
+        </Stack>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+          <Box>
+            <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>Farmer Name</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: COLORS.text.primary }}>{selectedFarmer?.name || 'N/A'}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>Mobile</Typography>
+            <Typography variant="body2" sx={{ color: COLORS.text.primary }}>{selectedFarmer?.mobile || 'N/A'}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>Pending Dues</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 500, color: '#FF6F00' }}>{formatCurrency(selectedFarmer?.pendingDues || 0)}</Typography>
+          </Box>
+        </Box>
+      </Paper>
 
       {/* Stepper */}
-      <div className="flex-shrink-0 mb-5">
-        <div className="flex items-center justify-center gap-3">
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+        <Stack direction="row" spacing={3} alignItems="center">
           {steps.map((step, index) => (
             <React.Fragment key={step}>
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${currentStep >= index ? 'text-white shadow-md' : 'bg-gray-200 text-gray-500'}`}
-                  style={currentStep >= index ? { background: 'linear-gradient(135deg, #2E7D32, #43A047)' } : {}}>
-                  {currentStep > index ? <CheckCircle className="w-4 h-4" /> : index + 1}
-                </div>
-                <div>
-                  <p className="text-[10px]" style={{ color: currentStep >= index ? '#2E7D32' : '#8D6E63' }}>Step {index + 1}</p>
-                  <p className="text-xs font-medium" style={{ color: currentStep >= index ? '#1B5E20' : '#8D6E63' }}>{step}</p>
-                </div>
-              </div>
-              {index < steps.length - 1 && <div className={`w-12 h-0.5 transition-all ${currentStep > index ? 'bg-[#2E7D32]' : 'bg-gray-200'}`}></div>}
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{
+                  width: 32, 
+                  height: 32, 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '0.875rem', 
+                  fontWeight: 600,
+                  ...(currentStep >= index 
+                    ? { background: 'linear-gradient(135deg, #2E7D32, #43A047)', color: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' } 
+                    : { bgcolor: '#E5E7EB', color: '#6B7280' })
+                }}>
+                  {currentStep > index ? <CheckIcon sx={{ fontSize: '1rem' }} /> : index + 1}
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: currentStep >= index ? '#2E7D32' : '#8D6E63', display: 'block', textAlign: 'left' }}>
+                    Step {index + 1}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: currentStep >= index ? '#1B5E20' : '#8D6E63' }}>
+                    {step}
+                  </Typography>
+                </Box>
+              </Stack>
+              {index < steps.length - 1 && (
+                <Box sx={{ width: 48, height: 2, bgcolor: currentStep > index ? '#2E7D32' : '#E5E7EB' }} />
+              )}
             </React.Fragment>
           ))}
-        </div>
-      </div>
+        </Stack>
+      </Box>
 
-      {/* Form Content */}
-      <div className="flex-1 overflow-y-auto pr-2">
-        {/* Step 1: Purchase Details */}
-        {currentStep === 0 && (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="px-5 py-3 border-b" style={{ background: '#F1F8E9', borderColor: '#C8E6C9' }}>
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" style={{ color: '#2E7D32' }} />
-                <h2 className="text-base font-semibold" style={{ color: '#1B5E20' }}>Purchase Information</h2>
-              </div>
-            </div>
-            <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <Label required>PURCHASE DATE</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                    <input type="date" value={formData.purchaseDate} onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
-                      className={`${inputClasses} pl-10`} />
-                  </div>
-                </div>
+      {/* Step 1: Purchase Details */}
+      {currentStep === 0 && (
+        <Paper sx={{ borderRadius: 2.5, overflow: 'hidden', border: `1px solid ${COLORS.border}` }}>
+          <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <ShoppingCart sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+              <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Purchase Information</Typography>
+            </Stack>
+          </Box>
+          <Box sx={{ p: 2.5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Box>
+                <Label required>PURCHASE DATE</Label>
+                <TextField
+                  fullWidth
+                  type="date"
+                  size="small"
+                  value={formData.purchaseDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
+                  sx={inputSx}
+                />
+              </Box>
 
-                <div>
-                  <Label>AMOUNT PAID (Already Paid)</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                    <input type="number" value={formData.amountPaid} onChange={(e) => setFormData(prev => ({ ...prev, amountPaid: parseFloat(e.target.value) || 0 }))}
-                      placeholder="Amount already paid" className={`${inputClasses} pl-10`} />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">This will be added to the payment record</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+              <Box>
+                <Label>AMOUNT PAID (Already Paid)</Label>
+                <TextField
+                  fullWidth
+                  type="number"
+                  size="small"
+                  value={formData.amountPaid}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amountPaid: parseFloat(e.target.value) || 0 }))}
+                  placeholder="Amount already paid"
+                  sx={inputSx}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                  }}
+                />
+                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#8D6E63', fontSize: '0.65rem' }}>
+                  This will be added to the payment record
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      )}
 
-        {/* Step 2: Product Lines */}
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            {formData.lines.map((line, index) => {
-              const lineTotal = calculateLineTotal(line);
-              return (
-                <div key={index} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <div className="px-5 py-3 border-b flex justify-between items-center" style={{ background: '#F1F8E9', borderColor: '#C8E6C9' }}>
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4" style={{ color: '#2E7D32' }} />
-                      <h2 className="text-base font-semibold" style={{ color: '#1B5E20' }}>Product Line {index + 1}</h2>
-                    </div>
-                    {formData.lines.length > 1 && (
-                      <button onClick={() => removeLine(index)} className="p-1 rounded hover:bg-red-100">
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="md:col-span-2">
-                        <Label required>PRODUCT NAME</Label>
-                        <input type="text" value={line.productName} onChange={(e) => handleLineChange(index, 'productName', e.target.value)}
-                          placeholder="e.g., Wheat, Rice, Corn" className={inputClasses} />
-                      </div>
-
-                      <div>
-                        <Label required>PRICING TYPE</Label>
-                        <select value={line.pricingType} onChange={(e) => handleLineChange(index, 'pricingType', e.target.value)} className={inputClasses}>
-                          {pricingTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                        </select>
-                      </div>
-
-                      <div>
-                        <Label required>RATE</Label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                          <input type="number" value={line.rate} onChange={(e) => handleLineChange(index, 'rate', parseFloat(e.target.value))}
-                            placeholder="Enter rate" className={`${inputClasses} pl-10`} />
-                        </div>
-                      </div>
-
-                      {line.pricingType === 'kg' && (
-                        <>
-                          <div>
-                            <Label>NUMBER OF BAGS (Optional)</Label>
-                            <input type="number" value={line.bags} onChange={(e) => handleLineChange(index, 'bags', parseInt(e.target.value) || 0)}
-                              placeholder="Number of bags" className={inputClasses} />
-                          </div>
-                          <div>
-                            <Label>WEIGHT PER BAG (KG)</Label>
-                            <div className="relative">
-                              <Scale className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                              <input type="number" value={line.weightPerBag} onChange={(e) => handleLineChange(index, 'weightPerBag', parseInt(e.target.value) || 0)}
-                                placeholder="Weight per bag" className={`${inputClasses} pl-10`} />
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      <div>
-                        <Label required>QUANTITY</Label>
-                        <input type="number" value={line.actualQty} onChange={(e) => handleLineChange(index, 'actualQty', parseFloat(e.target.value) || 0)}
-                          placeholder={`Enter quantity in ${line.pricingType}`} className={inputClasses} />
-                        {line.pricingType === 'kg' && line.bags > 0 && line.weightPerBag > 0 && (
-                          <p className="text-xs text-gray-500 mt-1">Note: Using bags calculation</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <Label>QUALITY DEDUCTION</Label>
-                        <div className="relative">
-                          <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                          <input type="number" value={line.qualityDeduction} onChange={(e) => handleLineChange(index, 'qualityDeduction', parseFloat(e.target.value) || 0)}
-                            placeholder="Quality deduction" className={`${inputClasses} pl-10`} />
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <Label>LINE NOTES</Label>
-                        <input type="text" value={line.notes} onChange={(e) => handleLineChange(index, 'notes', e.target.value)}
-                          placeholder="Any notes for this product line" className={inputClasses} />
-                      </div>
-
-                      <div className="md:col-span-2 mt-2 p-3 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Line Total:</span>
-                          <span className="text-lg font-bold text-green-800">{formatCurrency(lineTotal)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+      {/* Step 2: Product Lines - With Autocomplete for Pricing Type */}
+      {currentStep === 1 && (
+        <Stack spacing={2.5}>
+          {formData.lines.map((line, index) => {
+            const lineTotal = calculateLineTotal(line);
+            const selectedPricingType = pricingTypeOptions.find(opt => opt.value === line.pricingType) || null;
             
-            <button onClick={addLine} className="w-full py-3 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 hover:bg-green-50"
-              style={{ borderColor: '#C8E6C9', color: '#2E7D32' }}>
-              <Plus className="w-4 h-4" /> Add Another Product
-            </button>
-          </div>
-        )}
+            return (
+              <Paper key={index} sx={{ borderRadius: 2.5, overflow: 'visible', border: `1px solid ${COLORS.border}` }}>
+                <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <PackageIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+                    <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Product Line {index + 1}</Typography>
+                  </Stack>
+                  {formData.lines.length > 1 && (
+                    <IconButton size="small" onClick={() => removeLine(index)} sx={{ color: '#EF4444' }}>
+                      <DeleteIcon sx={{ fontSize: '1rem' }} />
+                    </IconButton>
+                  )}
+                </Box>
+                <Box sx={{ p: 2.5 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <Box sx={{ gridColumn: 'span 2' }}>
+                      <Label required>PRODUCT NAME</Label>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        value={line.productName}
+                        onChange={(e) => handleLineChange(index, 'productName', e.target.value)}
+                        placeholder="e.g., Wheat, Rice, Corn"
+                        error={!!fieldErrors[`line_${index}_product`]}
+                        helperText={fieldErrors[`line_${index}_product`]}
+                        sx={inputSx}
+                      />
+                    </Box>
 
-        {/* Step 3: Deductions & Summary */}
+                    {/* PRICING TYPE - Using Autocomplete like farmer dropdown */}
+                    <Box>
+                      <Label required>PRICING TYPE</Label>
+                      <Autocomplete
+                        fullWidth
+                        options={pricingTypeOptions}
+                        value={selectedPricingType}
+                        onChange={(event, newValue) => {
+                          handleLineChange(index, 'pricingType', newValue?.value || 'kg');
+                        }}
+                        getOptionLabel={(option) => option.label}
+                        isOptionEqualToValue={(option, value) => option.value === value?.value}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            size="small"
+                            placeholder="Select pricing type"
+                            sx={inputSx}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props}>
+                            <Typography sx={{ fontSize: '0.75rem' }}>{option.label}</Typography>
+                          </li>
+                        )}
+                        ListboxProps={{
+                          sx: {
+                            maxHeight: '300px',
+                            '& .MuiAutocomplete-option': {
+                              fontSize: '0.75rem',
+                              py: 1,
+                              px: 1.5
+                            }
+                          }
+                        }}
+                      />
+                    </Box>
+
+                    <Box>
+                      <Label required>RATE</Label>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        size="small"
+                        value={line.rate}
+                        onChange={(e) => handleLineChange(index, 'rate', parseFloat(e.target.value) || 0)}
+                        placeholder={`₹/${line.pricingType === 'kg' ? 'KG' : line.pricingType === 'quintal' ? 'Quintal' : 'Unit'}`}
+                        error={!!fieldErrors[`line_${index}_rate`]}
+                        helperText={fieldErrors[`line_${index}_rate`]}
+                        sx={inputSx}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                        }}
+                      />
+                    </Box>
+
+                    {line.pricingType === 'kg' && (
+                      <>
+                        <Box>
+                          <Label>NUMBER OF BAGS (Optional)</Label>
+                          <TextField
+                            fullWidth
+                            type="number"
+                            size="small"
+                            value={line.bags}
+                            onChange={(e) => handleLineChange(index, 'bags', parseInt(e.target.value) || 0)}
+                            placeholder="Number of bags"
+                            sx={inputSx}
+                          />
+                        </Box>
+                        <Box>
+                          <Label>WEIGHT PER BAG (KG)</Label>
+                          <TextField
+                            fullWidth
+                            type="number"
+                            size="small"
+                            value={line.weightPerBag}
+                            onChange={(e) => handleLineChange(index, 'weightPerBag', parseInt(e.target.value) || 0)}
+                            placeholder="Weight per bag"
+                            sx={inputSx}
+                          />
+                        </Box>
+                      </>
+                    )}
+
+                    <Box>
+                      <Label required>QUANTITY</Label>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        size="small"
+                        value={line.actualQty}
+                        onChange={(e) => handleLineChange(index, 'actualQty', parseFloat(e.target.value) || 0)}
+                        placeholder={`Enter quantity in ${line.pricingType}`}
+                        error={!!fieldErrors[`line_${index}_qty`]}
+                        helperText={fieldErrors[`line_${index}_qty`]}
+                        sx={inputSx}
+                      />
+                      {line.pricingType === 'kg' && line.bags > 0 && line.weightPerBag > 0 && (
+                        <Typography variant="caption" sx={{ mt: 0.5, display: 'block', color: '#8D6E63', fontSize: '0.65rem' }}>
+                          Using bags calculation
+                        </Typography>
+                      )}
+                    </Box>
+
+                    <Box>
+                      <Label>QUALITY DEDUCTION</Label>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        size="small"
+                        value={line.qualityDeduction}
+                        onChange={(e) => handleLineChange(index, 'qualityDeduction', parseFloat(e.target.value) || 0)}
+                        placeholder={`Quality deduction (${line.pricingType === 'kg' ? 'KG' : 'Units'})`}
+                        sx={inputSx}
+                      />
+                    </Box>
+
+                    <Box sx={{ gridColumn: 'span 2' }}>
+                      <Label>LINE NOTES</Label>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        value={line.notes}
+                        onChange={(e) => handleLineChange(index, 'notes', e.target.value)}
+                        placeholder="Any notes for this product line"
+                        sx={inputSx}
+                      />
+                    </Box>
+
+                    <Box sx={{ gridColumn: 'span 2' }}>
+                      <Box sx={{ p: 2, bgcolor: COLORS.primaryLight, borderRadius: 1.5 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography sx={{ fontSize: '0.7rem', color: COLORS.text.secondary }}>Line Total:</Typography>
+                          <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: COLORS.primaryDark }}>
+                            {formatCurrency(lineTotal)}
+                          </Typography>
+                        </Stack>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              </Paper>
+            );
+          })}
+
+          <Button 
+            onClick={addLine} 
+            variant="outlined" 
+            fullWidth
+            sx={{ 
+              py: 1.5, 
+              borderStyle: 'dashed', 
+              borderColor: COLORS.border,
+              color: COLORS.primary,
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontSize: '0.75rem',
+              '&:hover': { borderColor: COLORS.primary, bgcolor: COLORS.primaryLight }
+            }}
+          >
+            <AddIcon sx={{ mr: 0.5, fontSize: '1rem' }} /> Add Another Product
+          </Button>
+        </Stack>
+      )}
+
+      {/* Step 3: Deductions & Summary - With Autocomplete for Commission Type */}
+      {currentStep === 2 && (
+        <Stack spacing={2.5}>
+          <Paper sx={{ borderRadius: 2.5, overflow: 'visible', border: `1px solid ${COLORS.border}` }}>
+            <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Settings sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+                <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Deductions & Charges</Typography>
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <Box>
+                  <Label>TRANSPORT CHARGES</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    value={formData.deductions.transport}
+                    onChange={(e) => handleDeductionChange('transport', parseFloat(e.target.value) || 0)}
+                    placeholder="Transport cost"
+                    sx={inputSx}
+                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                  />
+                </Box>
+
+                <Box>
+                  <Label>LABOUR CHARGES</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    value={formData.deductions.labour}
+                    onChange={(e) => handleDeductionChange('labour', parseFloat(e.target.value) || 0)}
+                    placeholder="Labour cost"
+                    sx={inputSx}
+                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                  />
+                </Box>
+
+                <Box sx={{ gridColumn: 'span 2' }}>
+                  <Label>COMMISSION</Label>
+                  <Stack direction="row" spacing={1}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      size="small"
+                      value={formData.deductions.commission}
+                      onChange={(e) => handleDeductionChange('commission', parseFloat(e.target.value) || 0)}
+                      placeholder="Commission amount"
+                      sx={{ ...inputSx, flex: 2 }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            {formData.deductions.commissionType === 'percent' ? '%' : '₹'}
+                          </InputAdornment>
+                        )
+                      }}
+                    />
+                    {/* Commission Type - Using Autocomplete like farmer dropdown */}
+                    <Box sx={{ flex: 1 }}>
+                      <Autocomplete
+                        fullWidth
+                        options={commissionTypeOptions}
+                        value={commissionTypeOptions.find(opt => opt.value === formData.deductions.commissionType) || null}
+                        onChange={(event, newValue) => {
+                          handleDeductionChange('commissionType', newValue?.value || 'fixed');
+                        }}
+                        getOptionLabel={(option) => option.label}
+                        isOptionEqualToValue={(option, value) => option.value === value?.value}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            size="small"
+                            placeholder="Type"
+                            sx={inputSx}
+                          />
+                        )}
+                        renderOption={(props, option) => (
+                          <li {...props}>
+                            <Typography sx={{ fontSize: '0.75rem' }}>{option.label}</Typography>
+                          </li>
+                        )}
+                        ListboxProps={{
+                          sx: {
+                            '& .MuiAutocomplete-option': {
+                              fontSize: '0.75rem',
+                              py: 1,
+                              px: 1.5
+                            }
+                          }
+                        }}
+                      />
+                    </Box>
+                  </Stack>
+                </Box>
+
+                <Box>
+                  <Label>STORAGE CHARGES</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    value={formData.deductions.storage}
+                    onChange={(e) => handleDeductionChange('storage', parseFloat(e.target.value) || 0)}
+                    placeholder="Storage cost"
+                    sx={inputSx}
+                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                  />
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={formData.deductions.storageNote}
+                    onChange={(e) => handleDeductionChange('storageNote', e.target.value)}
+                    placeholder="Storage note (optional)"
+                    sx={{ ...inputSx, mt: 1 }}
+                  />
+                </Box>
+
+                <Box>
+                  <Label>RETURN DEDUCTION</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    value={formData.deductions.returnDeduction}
+                    onChange={(e) => handleDeductionChange('returnDeduction', parseFloat(e.target.value) || 0)}
+                    placeholder="Return deduction amount"
+                    sx={inputSx}
+                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                  />
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={formData.deductions.returnNote}
+                    onChange={(e) => handleDeductionChange('returnNote', e.target.value)}
+                    placeholder="Return reason (optional)"
+                    sx={{ ...inputSx, mt: 1 }}
+                  />
+                </Box>
+
+                <Box>
+                  <Label>ADVANCE ADJUSTED</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    value={formData.deductions.advanceAdjusted}
+                    onChange={(e) => handleDeductionChange('advanceAdjusted', parseFloat(e.target.value) || 0)}
+                    placeholder="Advance payment adjusted"
+                    sx={inputSx}
+                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                  />
+                </Box>
+
+                <Box>
+                  <Label>OTHER DEDUCTIONS</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    value={formData.deductions.other}
+                    onChange={(e) => handleDeductionChange('other', parseFloat(e.target.value) || 0)}
+                    placeholder="Other charges"
+                    sx={inputSx}
+                    InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                  />
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={formData.deductions.otherNote}
+                    onChange={(e) => handleDeductionChange('otherNote', e.target.value)}
+                    placeholder="Description (optional)"
+                    sx={{ ...inputSx, mt: 1 }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Paper>
+
+          <Paper sx={{ p: 2.5, bgcolor: COLORS.primaryLight, borderRadius: 2.5, border: `1px solid ${COLORS.primary}` }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: COLORS.primaryDark, mb: 2, fontSize: '0.85rem' }}>
+              Purchase Summary
+            </Typography>
+            <Stack spacing={1.5}>
+              <Stack direction="row" justifyContent="space-between">
+                <Typography sx={{ fontSize: '0.7rem', color: COLORS.text.secondary }}>Gross Total</Typography>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 500, color: COLORS.text.primary }}>
+                  {formatCurrency(calculations.grossTotal)}
+                </Typography>
+              </Stack>
+              <Stack direction="row" justifyContent="space-between">
+                <Typography sx={{ fontSize: '0.7rem', color: COLORS.text.secondary }}>Total Deductions</Typography>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 500, color: '#D32F2F' }}>
+                  - {formatCurrency(calculations.totalDeductions)}
+                </Typography>
+              </Stack>
+              <Stack direction="row" justifyContent="space-between">
+                <Typography sx={{ fontSize: '0.7rem', color: COLORS.text.secondary }}>Final Payable</Typography>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 500, color: '#FF6F00' }}>
+                  {formatCurrency(calculations.finalPayable)}
+                </Typography>
+              </Stack>
+              <Stack direction="row" justifyContent="space-between">
+                <Typography sx={{ fontSize: '0.7rem', color: COLORS.text.secondary }}>Amount Already Paid</Typography>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 500, color: '#2E7D32' }}>
+                  {formatCurrency(formData.amountPaid)}
+                </Typography>
+              </Stack>
+              <Box sx={{ pt: 1, mt: 1, borderTop: `1px solid ${COLORS.primary}` }}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: COLORS.primaryDark }}>Amount Due After Update</Typography>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: calculations.finalPayable - formData.amountPaid > 0 ? '#FF6F00' : '#2E7D32' }}>
+                    {formatCurrency(calculations.finalPayable - formData.amountPaid)}
+                  </Typography>
+                </Stack>
+              </Box>
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ borderRadius: 2.5, overflow: 'hidden', border: `1px solid ${COLORS.border}` }}>
+            <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <PackageIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+                <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Products Summary</Typography>
+              </Stack>
+            </Box>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: COLORS.primaryLight }}>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', color: COLORS.text.secondary }}>Product</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', color: COLORS.text.secondary }}>Quantity</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.7rem', color: COLORS.text.secondary }}>Rate</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.7rem', color: COLORS.text.secondary }}>Total</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {formData.lines.map((line, idx) => {
+                    let quantity = line.actualQty || 0;
+                    if (line.pricingType === 'quintal') quantity = line.actualQty * 100;
+                    const netQty = quantity - (line.qualityDeduction || 0);
+                    return (
+                      <TableRow key={idx} sx={{ '&:hover': { bgcolor: COLORS.primaryLight } }}>
+                        <TableCell sx={{ fontSize: '0.7rem' }}>{line.productName || '-'}</TableCell>
+                        <TableCell sx={{ fontSize: '0.7rem' }}>{netQty.toFixed(2)} {line.pricingType}</TableCell>
+                        <TableCell sx={{ fontSize: '0.7rem' }}>{formatCurrency(line.rate)}/{line.pricingType === 'kg' ? 'kg' : line.pricingType}</TableCell>
+                        <TableCell align="right" sx={{ fontSize: '0.7rem', fontWeight: 600, color: COLORS.primaryDark }}>
+                          {formatCurrency(calculateLineTotal(line))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Stack>
+      )}
+
+      {/* Navigation Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 3, pb: 2, mt: 2 }}>
+        {currentStep > 0 && (
+          <Button
+            onClick={handlePrevious}
+            sx={{
+              height: 32,
+              px: 2,
+              borderRadius: 1.5,
+              border: `1px solid ${COLORS.border}`,
+              color: COLORS.text.secondary,
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'none',
+              '&:hover': {
+                borderColor: COLORS.primary,
+                bgcolor: `${COLORS.primary}10`
+              }
+            }}
+          >
+            Previous
+          </Button>
+        )}
+        {currentStep < 2 && (
+          <Button
+            onClick={handleNext}
+            variant="contained"
+            sx={{
+              height: 32,
+              px: 2,
+              borderRadius: 1.5,
+              bgcolor: COLORS.primary,
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'none',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              '&:hover': {
+                bgcolor: COLORS.primaryDark,
+              }
+            }}
+          >
+            Next
+          </Button>
+        )}
         {currentStep === 2 && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b" style={{ background: '#F1F8E9', borderColor: '#C8E6C9' }}>
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" style={{ color: '#2E7D32' }} />
-                  <h2 className="text-base font-semibold" style={{ color: '#1B5E20' }}>Deductions & Charges</h2>
-                </div>
-              </div>
-              <div className="p-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <Label>TRANSPORT CHARGES</Label>
-                    <div className="relative">
-                      <Truck className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                      <input type="number" value={formData.deductions.transport} onChange={(e) => handleDeductionChange('transport', parseFloat(e.target.value) || 0)}
-                        placeholder="Transport cost" className={`${inputClasses} pl-10`} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>LABOUR CHARGES</Label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                      <input type="number" value={formData.deductions.labour} onChange={(e) => handleDeductionChange('labour', parseFloat(e.target.value) || 0)}
-                        placeholder="Labour cost" className={`${inputClasses} pl-10`} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>COMMISSION</Label>
-                    <div className="flex gap-2">
-                      <input type="number" value={formData.deductions.commission} onChange={(e) => handleDeductionChange('commission', parseFloat(e.target.value) || 0)}
-                        placeholder="Commission amount" className={`${inputClasses} flex-1`} />
-                      <select value={formData.deductions.commissionType} onChange={(e) => handleDeductionChange('commissionType', e.target.value)}
-                        className={`${inputClasses} w-28`}>
-                        <option value="fixed">Fixed (₹)</option>
-                        <option value="percent">Percent (%)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>STORAGE CHARGES</Label>
-                    <input type="number" value={formData.deductions.storage} onChange={(e) => handleDeductionChange('storage', parseFloat(e.target.value) || 0)}
-                      placeholder="Storage cost" className={inputClasses} />
-                    <input type="text" value={formData.deductions.storageNote} onChange={(e) => handleDeductionChange('storageNote', e.target.value)}
-                      placeholder="Storage note (optional)" className={`${inputClasses} mt-2 text-xs`} />
-                  </div>
-
-                  <div>
-                    <Label>RETURN DEDUCTION</Label>
-                    <input type="number" value={formData.deductions.returnDeduction} onChange={(e) => handleDeductionChange('returnDeduction', parseFloat(e.target.value) || 0)}
-                      placeholder="Return deduction amount" className={inputClasses} />
-                    <input type="text" value={formData.deductions.returnNote} onChange={(e) => handleDeductionChange('returnNote', e.target.value)}
-                      placeholder="Return reason (optional)" className={`${inputClasses} mt-2 text-xs`} />
-                  </div>
-
-                  <div>
-                    <Label>ADVANCE ADJUSTED</Label>
-                    <div className="relative">
-                      <TrendingUp className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: '#C8E6C9' }} />
-                      <input type="number" value={formData.deductions.advanceAdjusted} onChange={(e) => handleDeductionChange('advanceAdjusted', parseFloat(e.target.value) || 0)}
-                        placeholder="Advance payment adjusted" className={`${inputClasses} pl-10`} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>OTHER DEDUCTIONS</Label>
-                    <input type="number" value={formData.deductions.other} onChange={(e) => handleDeductionChange('other', parseFloat(e.target.value) || 0)}
-                      placeholder="Other charges" className={inputClasses} />
-                    <input type="text" value={formData.deductions.otherNote} onChange={(e) => handleDeductionChange('otherNote', e.target.value)}
-                      placeholder="Description (optional)" className={`${inputClasses} mt-2 text-xs`} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-sm overflow-hidden border border-green-200">
-              <div className="px-5 py-4">
-                <h3 className="text-lg font-bold mb-4" style={{ color: '#1B5E20' }}>Purchase Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between py-2 border-b border-green-200">
-                    <span className="text-gray-700">Gross Total</span>
-                    <span className="font-semibold">{formatCurrency(calculations.grossTotal)}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-green-200">
-                    <span className="text-gray-700">Total Deductions</span>
-                    <span className="font-semibold text-red-600">- {formatCurrency(calculations.totalDeductions)}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-green-200">
-                    <span className="text-gray-700">Final Payable</span>
-                    <span className="font-semibold text-orange-600">{formatCurrency(calculations.finalPayable)}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-green-200">
-                    <span className="text-gray-700">Amount Already Paid</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(formData.amountPaid)}</span>
-                  </div>
-                  <div className="flex justify-between py-3 bg-white rounded-lg px-3 -mx-3">
-                    <span className="text-lg font-bold" style={{ color: '#1B5E20' }}>Amount Due After Update</span>
-                    <span className="text-xl font-bold" style={{ color: calculations.finalPayable - formData.amountPaid > 0 ? '#FF6F00' : '#2E7D32' }}>
-                      {formatCurrency(calculations.finalPayable - formData.amountPaid)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b" style={{ background: '#F1F8E9', borderColor: '#C8E6C9' }}>
-                <div className="flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4" style={{ color: '#2E7D32' }} />
-                  <h2 className="text-base font-semibold" style={{ color: '#1B5E20' }}>Products Summary</h2>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ background: '#FAFAFA' }}>
-                      <th className="px-4 py-2 text-left text-xs">Product</th>
-                      <th className="px-4 py-2 text-left text-xs">Quantity</th>
-                      <th className="px-4 py-2 text-left text-xs">Rate</th>
-                      <th className="px-4 py-2 text-right text-xs">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {formData.lines.map((line, idx) => {
-                      let quantity = line.actualQty || 0;
-                      if (line.pricingType === 'quintal') quantity = line.actualQty * 100;
-                      const netQty = quantity - (line.qualityDeduction || 0);
-                      return (
-                        <tr key={idx} className="border-t border-gray-100">
-                          <td className="px-4 py-2 text-sm">{line.productName || '-'}</td>
-                          <td className="px-4 py-2 text-sm">{netQty.toFixed(2)} {line.pricingType}</td>
-                          <td className="px-4 py-2 text-sm">{formatCurrency(line.rate)}/{line.pricingType === 'kg' ? 'kg' : line.pricingType}</td>
-                          <td className="px-4 py-2 text-sm text-right font-semibold">{formatCurrency(calculateLineTotal(line))}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            variant="contained"
+            sx={{
+              height: 32,
+              px: 2,
+              borderRadius: 1.5,
+              bgcolor: COLORS.primary,
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'none',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              '&:hover': {
+                bgcolor: COLORS.primaryDark,
+              },
+              '&:disabled': {
+                bgcolor: COLORS.border,
+                color: COLORS.text.tertiary
+              }
+            }}
+          >
+            {loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : 'Update Purchase'}
+          </Button>
         )}
-
-        <div className="flex justify-between gap-3 pt-5 pb-3 mt-2">
-          {currentStep > 0 && (
-            <button onClick={handlePrevious} className="px-5 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border hover:bg-gray-50"
-              style={{ borderColor: '#C8E6C9', color: '#2E7D32' }}>
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </button>
-          )}
-          {currentStep < 2 && (
-            <button onClick={handleNext} className="px-5 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 hover:scale-105 ml-auto"
-              style={{ background: 'linear-gradient(135deg, #2E7D32, #43A047)' }}>
-              Next <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

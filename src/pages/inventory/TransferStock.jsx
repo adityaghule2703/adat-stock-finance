@@ -1,11 +1,89 @@
 // src/pages/inventory/TransferStock.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Button,
+  TextField,
+  Stack,
+  Typography,
+  Box,
+  Autocomplete,
+  CircularProgress,
+  IconButton,
+  Collapse,
+  Alert,
+  Paper,
+  InputAdornment
+} from '@mui/material';
 import { 
-  ArrowLeft, Save, X, ArrowLeftRight,
-  AlertCircle, CheckCircle, Loader, Package, Building
-} from 'lucide-react';
+  Error as ErrorIcon, 
+  Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+  SwapHoriz as TransferIcon,
+  Inventory as PackageIcon,
+  Warehouse as BuildingIcon
+} from '@mui/icons-material';
+import axios from 'axios';
 import BASE_URL from '../../config/Config';
+
+// Color constants
+const COLORS = {
+  primary: '#1B3A1F',
+  primaryLight: '#E8F5E9',
+  primaryDark: '#0E2A12',
+  text: {
+    primary: '#1B5E20',
+    secondary: '#4B5568',
+    tertiary: '#94A3B8',
+    light: '#FFFFFF',
+    lightMuted: 'rgba(255, 255, 255, 0.9)'
+  },
+  background: {
+    white: '#FFFFFF',
+    light: '#F8FFFC',
+    hover: '#F0FDF9',
+    tableHeader: '#1B3A1F'
+  },
+  border: '#E3E8EF'
+};
+
+// Floating Error Alert Component
+const FloatingErrorAlert = ({ error, onClose }) => {
+  if (!error) return null;
+  
+  return (
+    <Collapse in={!!error}>
+      <Alert
+        severity="error"
+        variant="filled"
+        onClose={onClose}
+        icon={<ErrorIcon sx={{ fontSize: '1rem' }} />}
+        sx={{
+          mb: 2,
+          borderRadius: 1.5,
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          '& .MuiAlert-icon': {
+            fontSize: '1rem',
+            alignItems: 'center'
+          },
+          '& .MuiAlert-message': {
+            py: 0.5,
+            fontSize: '0.75rem'
+          },
+          '& .MuiAlert-action': {
+            py: 0,
+            alignItems: 'center'
+          }
+        }}
+      >
+        {error}
+      </Alert>
+    </Collapse>
+  );
+};
 
 const TransferStock = () => {
   const navigate = useNavigate();
@@ -22,6 +100,7 @@ const TransferStock = () => {
   const [warehouses, setWarehouses] = useState([]);
   const [selectedProductStock, setSelectedProductStock] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   
   const [formData, setFormData] = useState({
     productName: preSelectedProduct || '',
@@ -32,65 +111,87 @@ const TransferStock = () => {
 
   const getToken = () => localStorage.getItem('token');
 
-  // Fetch inventory items to get product list
-  const fetchInventory = async () => {
-    try {
-      const token = getToken();
-      const response = await fetch(`${BASE_URL}/inventory`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setProducts(data.data);
+ // Fetch inventory items to get product list
+const fetchInventory = async () => {
+  try {
+    const token = getToken();
+    const response = await axios.get(`${BASE_URL}/inventory`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.data.success) {
+      setProducts(response.data.data);
+      if (preSelectedProduct) {
+        const product = response.data.data.find(p => p.productName === preSelectedProduct);
+        if (product) setSelectedProduct(product);
       }
-    } catch (error) {
-      console.error('Error fetching inventory:', error);
-      setError('Failed to load inventory data');
+    } else {
+      // FIX: Check for both 'message' and 'error' fields
+      const errorMessage = response.data.message || response.data.error || 'Failed to load inventory data';
+      setError(errorMessage);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching inventory:', error);
+    // FIX: Better error extraction from catch block
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Failed to load inventory data';
+    setError(errorMessage);
+  }
+};
 
   // Fetch warehouses from warehouse API
-  const fetchWarehouses = async () => {
-    try {
-      const token = getToken();
-      const response = await fetch(`${BASE_URL}/warehouse`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+const fetchWarehouses = async () => {
+  try {
+    const token = getToken();
+    const response = await axios.get(`${BASE_URL}/warehouse`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.data.success) {
+      const warehouseNames = response.data.data.map(warehouse => warehouse.name);
+      setWarehouses(warehouseNames);
+    } else {
+      // FIX: Check for both 'message' and 'error' fields before falling back
+      const errorMessage = response.data.message || response.data.error || 'Failed to load warehouses from API';
+      console.warn(errorMessage);
+      
+      // Fallback: try to get from inventory if warehouse API fails
+      const token2 = getToken();
+      const invResponse = await axios.get(`${BASE_URL}/inventory`, {
+        headers: { 'Authorization': `Bearer ${token2}` }
       });
-      const data = await response.json();
-      if (data.success) {
-        // Extract warehouse names from the data
-        const warehouseNames = data.data.map(warehouse => warehouse.name);
-        setWarehouses(warehouseNames);
-      } else {
-        // Fallback: try to get from inventory if warehouse API fails
-        const token2 = getToken();
-        const invResponse = await fetch(`${BASE_URL}/inventory`, {
-          headers: { 'Authorization': `Bearer ${token2}` }
-        });
-        const invData = await invResponse.json();
-        if (invData.success) {
-          const uniqueWarehouses = [...new Set(invData.data.map(item => item.warehouse))];
-          setWarehouses(uniqueWarehouses);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching warehouses:', error);
-      // Fallback: get warehouses from inventory
-      try {
-        const token2 = getToken();
-        const invResponse = await fetch(`${BASE_URL}/inventory`, {
-          headers: { 'Authorization': `Bearer ${token2}` }
-        });
-        const invData = await invResponse.json();
-        if (invData.success) {
-          const uniqueWarehouses = [...new Set(invData.data.map(item => item.warehouse))];
-          setWarehouses(uniqueWarehouses);
-        }
-      } catch (err) {
-        console.error('Fallback also failed:', err);
+      if (invResponse.data.success) {
+        const uniqueWarehouses = [...new Set(invResponse.data.data.map(item => item.warehouse))];
+        setWarehouses(uniqueWarehouses);
       }
     }
-  };
+  } catch (error) {
+    console.error('Error fetching warehouses:', error);
+    // Fallback: get warehouses from inventory
+    try {
+      const token2 = getToken();
+      const invResponse = await axios.get(`${BASE_URL}/inventory`, {
+        headers: { 'Authorization': `Bearer ${token2}` }
+      });
+      if (invResponse.data.success) {
+        const uniqueWarehouses = [...new Set(invResponse.data.data.map(item => item.warehouse))];
+        setWarehouses(uniqueWarehouses);
+      } else {
+        // FIX: Handle inventory API error as well
+        const fallbackErrorMessage = invResponse.data.message || invResponse.data.error || 'Failed to load warehouse data';
+        setError(fallbackErrorMessage);
+      }
+    } catch (err) {
+      console.error('Fallback also failed:', err);
+      // FIX: Better error extraction for fallback error
+      const fallbackErrorMsg = err.response?.data?.message || 
+                               err.response?.data?.error || 
+                               err.message || 
+                               'Failed to load warehouse data';
+      setError(fallbackErrorMsg);
+    }
+  }
+};
 
   useEffect(() => {
     const loadData = async () => {
@@ -112,6 +213,26 @@ const TransferStock = () => {
       setSelectedProductStock(null);
     }
   }, [formData.productName, formData.fromWarehouse, products]);
+
+  const handleProductChange = (event, newValue) => {
+    setSelectedProduct(newValue);
+    setFormData(prev => ({ ...prev, productName: newValue?.productName || '' }));
+    if (fieldErrors.productName) setFieldErrors(prev => ({ ...prev, productName: '' }));
+  };
+
+  const handleFromWarehouseChange = (event, newValue) => {
+    setFormData(prev => ({ ...prev, fromWarehouse: newValue || '' }));
+    if (fieldErrors.fromWarehouse) setFieldErrors(prev => ({ ...prev, fromWarehouse: '' }));
+    // Reset destination warehouse if it's the same as source
+    if (formData.toWarehouse === newValue) {
+      setFormData(prev => ({ ...prev, toWarehouse: '' }));
+    }
+  };
+
+  const handleToWarehouseChange = (event, newValue) => {
+    setFormData(prev => ({ ...prev, toWarehouse: newValue || '' }));
+    if (fieldErrors.toWarehouse) setFieldErrors(prev => ({ ...prev, toWarehouse: '' }));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -153,234 +274,425 @@ const TransferStock = () => {
     return isValid;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const token = getToken();
-      const transferData = {
-        productName: formData.productName,
-        fromWarehouse: formData.fromWarehouse,
-        toWarehouse: formData.toWarehouse,
-        qty: parseFloat(formData.qty)
-      };
-
-      const response = await fetch(`${BASE_URL}/inventory/transfer`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(transferData)
-      });
-
-      const data = await response.json();
-
-      if (response.status === 401) {
-        localStorage.clear();
-        navigate('/login');
-        return;
-      }
-
-      if (response.ok && data.success) {
-        setSuccess(true);
-        setTimeout(() => navigate('/inventory'), 2000);
-      } else {
-        setError(data.message || 'Failed to transfer stock');
-      }
-    } catch (error) {
-      console.error('Error transferring stock:', error);
-      setError('Network error. Please check your connection.');
-    } finally {
-      setLoading(false);
-    }
+  const showError = (message) => {
+    setError(message);
+    setTimeout(() => setError(''), 5000);
   };
 
-  const inputClasses = "w-full px-3 py-2 border rounded-lg focus:outline-none border-[#E2E8F0] transition-all bg-white text-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+const handleSubmit = async () => {
+  if (!validateForm()) return;
 
-  const Label = ({ children, required }) => (
-    <label className="block text-xs font-semibold mb-1" style={{ color: '#4B5568' }}>
-      {children} {required && <span className="text-red-500">*</span>}
-    </label>
-  );
+  setLoading(true);
+  setError('');
 
+  try {
+    const token = getToken();
+    const transferData = {
+      productName: formData.productName,
+      fromWarehouse: formData.fromWarehouse,
+      toWarehouse: formData.toWarehouse,
+      qty: parseFloat(formData.qty)
+    };
+
+    const response = await axios.post(`${BASE_URL}/inventory/transfer`, transferData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      localStorage.clear();
+      navigate('/login');
+      return;
+    }
+
+    if (response.data.success) {
+      setSuccess(true);
+      setTimeout(() => navigate('/inventory'), 2000);
+    } else {
+      // FIX: Check for both 'message' and 'error' fields
+      const errorMessage = response.data.message || response.data.error || 'Failed to transfer stock';
+      showError(errorMessage);
+    }
+  } catch (error) {
+    console.error('Error transferring stock:', error);
+    // FIX: Better error extraction from catch block
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Network error. Please check your connection.';
+    showError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Get unique product names for dropdown
+  const uniqueProductNames = [...new Set(products.map(p => p.productName))];
+  
   // Get available destination warehouses (excluding source)
   const availableWarehouses = warehouses.filter(w => w !== formData.fromWarehouse);
 
+  // Label component
+  const Label = ({ children, required }) => (
+    <Typography sx={{ 
+      fontSize: '0.7rem', 
+      fontWeight: 600, 
+      color: COLORS.text.secondary, 
+      letterSpacing: '0.5px',
+      mb: 0.5
+    }}>
+      {children} {required && <span style={{ color: '#EF4444' }}>*</span>}
+    </Typography>
+  );
+
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 1.5,
+      fontSize: '0.75rem',
+      '&:hover fieldset': { borderColor: COLORS.primary },
+      '&.Mui-focused fieldset': { borderColor: COLORS.primary, borderWidth: 1 }
+    },
+    '& .MuiInputBase-input': {
+      py: 1,
+      px: 1.5,
+      fontSize: '0.75rem',
+      color: COLORS.text.primary,
+      '&::placeholder': {
+        color: COLORS.text.tertiary,
+        fontSize: '0.75rem'
+      }
+    }
+  };
+
   if (loadingData) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <Loader className="w-8 h-8 animate-spin text-green-700" />
-        <span className="ml-2 text-green-700">Loading data...</span>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '96vh' }}>
+        <CircularProgress sx={{ color: '#2E7D32' }} />
+        <Typography sx={{ ml: 2, color: '#2E7D32' }}>Loading data...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/inventory')} className="p-2 rounded-lg hover:bg-gray-100">
-            <ArrowLeft className="w-5 h-5" style={{ color: '#2E7D32' }} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: '#1B5E20' }}>Transfer Stock</h1>
-            <p className="text-xs mt-0.5" style={{ color: '#8D6E63' }}>Move stock between warehouses</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => navigate('/inventory')} className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border hover:bg-gray-50">
-            <X className="w-4 h-4" /> Cancel
-          </button>
-          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 hover:scale-105 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #FF6F00, #FF8F00)' }}>
-            {loading ? <Loader className="w-4 h-4 animate-spin" /> : <ArrowLeftRight className="w-4 h-4" />}
+    <Box sx={{  height: '100%', overflow: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <IconButton 
+          onClick={() => navigate('/inventory')} 
+          sx={{ 
+            p: 1, 
+            borderRadius: 1.5,
+            '&:hover': { bgcolor: COLORS.primaryLight }
+          }}
+        >
+          <ArrowBackIcon sx={{ color: COLORS.primary }} />
+        </IconButton>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.text.primary }}>
             Transfer Stock
-          </button>
-        </div>
-      </div>
+          </Typography>
+          <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>
+            Move stock between warehouses
+          </Typography>
+        </Box>
+      </Box>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 text-red-500" />
-          <span className="text-xs text-red-600 flex-1">{error}</span>
-          <button onClick={() => setError('')}><X className="w-3 h-3 text-red-500" /></button>
-        </div>
-      )}
+      {/* Floating Error Alert */}
+      <Box sx={{ mb: 2 }}>
+        <FloatingErrorAlert error={error} onClose={() => setError('')} />
+      </Box>
 
+      {/* Success Message */}
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
-          <CheckCircle className="w-4 h-4 text-green-500" />
-          <span className="text-sm text-green-700">Stock transferred successfully! Redirecting...</span>
-        </div>
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+          Stock transferred successfully! Redirecting...
+        </Alert>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b" style={{ background: '#F1F8E9', borderColor: '#C8E6C9' }}>
-          <div className="flex items-center gap-2">
-            <ArrowLeftRight className="w-4 h-4" style={{ color: '#2E7D32' }} />
-            <h2 className="text-base font-semibold" style={{ color: '#1B5E20' }}>Transfer Details</h2>
-          </div>
-        </div>
-        <div className="p-5">
-          <div className="space-y-5">
-            {/* Product Selection */}
-            <div>
+      {/* Form Content */}
+      <Paper sx={{ borderRadius: 2.5, overflow: 'hidden', border: `1px solid ${COLORS.border}` }}>
+        <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <TransferIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+            <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Transfer Details</Typography>
+          </Stack>
+        </Box>
+        <Box sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            {/* PRODUCT SELECTION - First column */}
+            <Box sx={{ gridColumn: 'span 2' }}>
               <Label required>PRODUCT NAME</Label>
-              <div className="relative">
-                <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  name="productName"
-                  value={formData.productName}
-                  onChange={handleChange}
-                  className={`${inputClasses} pl-10 ${fieldErrors.productName ? 'border-red-500' : ''}`}
-                  disabled={!!preSelectedProduct}
-                >
-                  <option value="">Select a product</option>
-                  {[...new Set(products.map(p => p.productName))].map(productName => (
-                    <option key={productName} value={productName}>{productName}</option>
-                  ))}
-                </select>
-              </div>
-              {fieldErrors.productName && <p className="text-xs text-red-500 mt-1">{fieldErrors.productName}</p>}
-            </div>
+              <Autocomplete
+                fullWidth
+                options={uniqueProductNames}
+                value={formData.productName || null}
+                onChange={(event, newValue) => {
+                  setFormData(prev => ({ ...prev, productName: newValue || '' }));
+                  if (fieldErrors.productName) setFieldErrors(prev => ({ ...prev, productName: '' }));
+                }}
+                disabled={!!preSelectedProduct}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    placeholder="Search and select a product"
+                    error={!!fieldErrors.productName}
+                    helperText={fieldErrors.productName}
+                    sx={inputSx}
+                  />
+                )}
+                renderOption={(props, option) => {
+                  // Find all stock entries for this product across warehouses
+                  const productStocks = products.filter(p => p.productName === option);
+                  const totalStock = productStocks.reduce((sum, p) => sum + p.currentStock, 0);
+                  const unit = productStocks[0]?.unit || 'units';
+                  
+                  return (
+                    <li {...props}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>
+                          {option}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.7rem', color: COLORS.text.tertiary }}>
+                          Total Stock: {totalStock} {unit}
+                        </Typography>
+                      </Box>
+                    </li>
+                  );
+                }}
+                ListboxProps={{
+                  sx: {
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '& .MuiAutocomplete-option': {
+                      fontSize: '0.75rem',
+                      py: 1,
+                      px: 1.5
+                    }
+                  }
+                }}
+              />
+            </Box>
 
-            {/* From Warehouse - Now from warehouse API */}
-            <div>
+            {/* FROM WAREHOUSE - First column */}
+            <Box>
               <Label required>FROM WAREHOUSE (Source)</Label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  name="fromWarehouse"
-                  value={formData.fromWarehouse}
-                  onChange={handleChange}
-                  className={`${inputClasses} pl-10 ${fieldErrors.fromWarehouse ? 'border-red-500' : ''}`}
-                  disabled={!!preSelectedFrom}
-                >
-                  <option value="">Select source warehouse</option>
-                  {warehouses.map(warehouse => (
-                    <option key={warehouse} value={warehouse}>{warehouse}</option>
-                  ))}
-                </select>
-              </div>
-              {fieldErrors.fromWarehouse && <p className="text-xs text-red-500 mt-1">{fieldErrors.fromWarehouse}</p>}
+              <Autocomplete
+                fullWidth
+                options={warehouses}
+                value={formData.fromWarehouse || null}
+                onChange={handleFromWarehouseChange}
+                disabled={!!preSelectedFrom || warehouses.length === 0}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    placeholder={warehouses.length === 0 ? 'No warehouses found' : 'Select source warehouse'}
+                    error={!!fieldErrors.fromWarehouse}
+                    helperText={fieldErrors.fromWarehouse}
+                    sx={inputSx}
+                  />
+                )}
+                renderOption={(props, option) => {
+                  // Show stock info for selected product in this warehouse
+                  const stockInfo = formData.productName 
+                    ? products.find(p => p.productName === formData.productName && p.warehouse === option)
+                    : null;
+                  
+                  return (
+                    <li {...props}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <BuildingIcon sx={{ fontSize: '0.875rem', color: COLORS.text.tertiary }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            {option}
+                          </Typography>
+                        </Box>
+                        {stockInfo && (
+                          <Typography variant="caption" sx={{ fontSize: '0.7rem', color: '#2E7D32' }}>
+                            Stock: {stockInfo.currentStock} {stockInfo.unit}
+                          </Typography>
+                        )}
+                      </Box>
+                    </li>
+                  );
+                }}
+                ListboxProps={{
+                  sx: {
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '& .MuiAutocomplete-option': {
+                      fontSize: '0.75rem',
+                      py: 1,
+                      px: 1.5
+                    }
+                  }
+                }}
+              />
               {warehouses.length === 0 && !loadingData && (
-                <p className="text-xs text-orange-500 mt-1">No warehouses found. Please add a warehouse first.</p>
+                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#FF6F00', fontSize: '0.65rem' }}>
+                  No warehouses found. Please add a warehouse first.
+                </Typography>
               )}
-            </div>
+            </Box>
 
-            {/* To Warehouse */}
-            <div>
+            {/* TO WAREHOUSE - Second column */}
+            <Box>
               <Label required>TO WAREHOUSE (Destination)</Label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  name="toWarehouse"
-                  value={formData.toWarehouse}
-                  onChange={handleChange}
-                  className={`${inputClasses} pl-10 ${fieldErrors.toWarehouse ? 'border-red-500' : ''}`}
-                >
-                  <option value="">Select destination warehouse</option>
-                  {availableWarehouses.map(warehouse => (
-                    <option key={warehouse} value={warehouse}>{warehouse}</option>
-                  ))}
-                </select>
-              </div>
-              {fieldErrors.toWarehouse && <p className="text-xs text-red-500 mt-1">{fieldErrors.toWarehouse}</p>}
-            </div>
+              <Autocomplete
+                fullWidth
+                options={availableWarehouses}
+                value={formData.toWarehouse || null}
+                onChange={handleToWarehouseChange}
+                disabled={!formData.fromWarehouse || availableWarehouses.length === 0}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    placeholder={!formData.fromWarehouse ? 'Select source first' : 'Select destination warehouse'}
+                    error={!!fieldErrors.toWarehouse}
+                    helperText={fieldErrors.toWarehouse}
+                    sx={inputSx}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <BuildingIcon sx={{ fontSize: '0.875rem', color: COLORS.text.tertiary }} />
+                      <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                        {option}
+                      </Typography>
+                    </Box>
+                  </li>
+                )}
+                ListboxProps={{
+                  sx: {
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '& .MuiAutocomplete-option': {
+                      fontSize: '0.75rem',
+                      py: 1,
+                      px: 1.5
+                    }
+                  }
+                }}
+              />
+            </Box>
 
-            {/* Quantity */}
-            <div>
+            {/* QUANTITY - First column */}
+            <Box>
               <Label required>QUANTITY TO TRANSFER</Label>
-              <input
+              <TextField
+                fullWidth
                 type="number"
+                size="small"
                 name="qty"
                 value={formData.qty}
                 onChange={handleChange}
                 placeholder="Enter quantity"
-                className={`${inputClasses} ${fieldErrors.qty ? 'border-red-500' : ''}`}
+                error={!!fieldErrors.qty}
+                helperText={fieldErrors.qty}
+                sx={inputSx}
               />
-              {fieldErrors.qty && <p className="text-xs text-red-500 mt-1">{fieldErrors.qty}</p>}
-            </div>
+            </Box>
 
-            {/* Stock Info */}
+            {/* Empty space for alignment */}
+            <Box />
+
+            {/* Stock Info - spans both columns */}
             {selectedProductStock && (
-              <div className="p-3 rounded-lg" style={{ background: '#E3F2FD', border: '1px solid #BBDEFB' }}>
-                <p className="text-xs text-blue-800">
-                  <strong>Available Stock:</strong> {selectedProductStock.currentStock} {selectedProductStock.unit} in {selectedProductStock.warehouse}
-                </p>
-              </div>
+              <Box sx={{ gridColumn: 'span 2' }}>
+                <Box sx={{ p: 2, bgcolor: '#E3F2FD', borderRadius: 1.5, border: '1px solid #BBDEFB' }}>
+                  <Typography variant="body2" sx={{ color: '#1565C0', fontSize: '0.75rem' }}>
+                    <strong>Available Stock:</strong> {selectedProductStock.currentStock} {selectedProductStock.unit} in {selectedProductStock.warehouse}
+                  </Typography>
+                </Box>
+              </Box>
             )}
 
-            {/* Transfer Direction Visual */}
+            {/* Transfer Direction Visual - spans both columns */}
             {formData.fromWarehouse && formData.toWarehouse && (
-              <div className="p-4 rounded-lg flex items-center justify-between" style={{ background: '#F1F8E9' }}>
-                <div className="text-center">
-                  <Building className="w-6 h-6 mx-auto text-green-700" />
-                  <p className="text-xs font-medium text-green-800 mt-1">{formData.fromWarehouse}</p>
-                </div>
-                <ArrowLeftRight className="w-6 h-6 text-orange-500" />
-                <div className="text-center">
-                  <Building className="w-6 h-6 mx-auto text-green-700" />
-                  <p className="text-xs font-medium text-green-800 mt-1">{formData.toWarehouse}</p>
-                </div>
-              </div>
+              <Box sx={{ gridColumn: 'span 2' }}>
+                <Box sx={{ p: 2, bgcolor: COLORS.primaryLight, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <BuildingIcon sx={{ fontSize: '1.5rem', color: COLORS.primary, mx: 'auto' }} />
+                    <Typography variant="caption" sx={{ fontWeight: 500, color: COLORS.primary, display: 'block', mt: 0.5 }}>
+                      {formData.fromWarehouse}
+                    </Typography>
+                  </Box>
+                  <TransferIcon sx={{ fontSize: '1.5rem', color: '#FF6F00' }} />
+                  <Box sx={{ textAlign: 'center' }}>
+                    <BuildingIcon sx={{ fontSize: '1.5rem', color: COLORS.primary, mx: 'auto' }} />
+                    <Typography variant="caption" sx={{ fontWeight: 500, color: COLORS.primary, display: 'block', mt: 0.5 }}>
+                      {formData.toWarehouse}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
             )}
 
-            {/* Info Note */}
-            <div className="p-3 rounded-lg" style={{ background: '#FFF3E0', border: '1px solid #FFE0B2' }}>
-              <p className="text-xs text-orange-800">
-                <strong>Note:</strong> Transferring stock will decrease quantity from source warehouse
-                and increase quantity in destination warehouse.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            {/* Info Note - spans both columns */}
+            <Box sx={{ gridColumn: 'span 2' }}>
+              <Box sx={{ p: 2, bgcolor: '#FFF3E0', borderRadius: 1.5, border: '1px solid #FFE0B2' }}>
+                <Typography variant="caption" sx={{ color: '#E65100', fontSize: '0.7rem' }}>
+                  <strong>Note:</strong> Transferring stock will decrease quantity from source warehouse
+                  and increase quantity in destination warehouse.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Submit Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 3, pb: 2, mt: 2 }}>
+        <Button
+          onClick={() => navigate('/inventory')}
+          sx={{
+            height: 32,
+            px: 2,
+            borderRadius: 1.5,
+            border: `1px solid ${COLORS.border}`,
+            color: COLORS.text.secondary,
+            fontSize: '0.7rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            '&:hover': {
+              borderColor: COLORS.primary,
+              bgcolor: `${COLORS.primary}10`
+            }
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          variant="contained"
+          sx={{
+            height: 32,
+            px: 2,
+            borderRadius: 1.5,
+            bgcolor: '#FF6F00',
+            fontSize: '0.7rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+            '&:hover': {
+              bgcolor: '#E65100',
+            },
+            '&:disabled': {
+              bgcolor: COLORS.border,
+              color: COLORS.text.tertiary
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <><TransferIcon sx={{ fontSize: '1rem', mr: 0.5 }} /> Transfer Stock</>}
+        </Button>
+      </Box>
+    </Box>
   );
 };
 

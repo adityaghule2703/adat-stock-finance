@@ -4,6 +4,7 @@ import { Bell, Settings, User, ChevronDown, Search, Menu, X, Leaf } from "lucide
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from '../components/LanguageToggle';
+import BASE_URL from "../config/Config";
 
 const Header = ({ onMenuClick }) => {
   const { t } = useTranslation();
@@ -11,10 +12,54 @@ const Header = ({ onMenuClick }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    role: ''
+  });
+  const [loading, setLoading] = useState(true);
   
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
   const navigate = useNavigate();
+
+  // Fetch user data from API
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${BASE_URL}/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          setUserData({
+            name: data.user.name || 'User',
+            email: data.user.email || '',
+            role: data.user.role || 'member'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -66,6 +111,21 @@ const Header = ({ onMenuClick }) => {
     }
   };
 
+  const handleAccountClick = () => {
+    setIsProfileOpen(false);
+    navigate('/account');
+  };
+
+ // Get role display text
+const getRoleText = (role) => {
+  const roleMap = {
+    'superadmin': 'Super Admin',
+    'farmer': 'Farmer',
+    'operator': 'Operator'
+  };
+  return roleMap[role] || 'Member';
+};
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 h-16 z-20 backdrop-blur-xl" style={{ background: 'rgba(255, 255, 255, 0.98)', borderBottom: '1px solid rgba(76, 175, 80, 0.2)' }}>
@@ -115,48 +175,6 @@ const Header = ({ onMenuClick }) => {
             {/* Language Toggle */}
             <LanguageToggle />
 
-            {/* Notifications Dropdown */}
-            <div className="relative" ref={notificationRef}>
-              <button 
-                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative p-2 rounded-full transition-all duration-300 hover:scale-110" 
-                style={{ background: '#F1F8E9' }}
-              >
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#2E7D32' }} />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-white" style={{ background: '#FF6F00' }}></span>
-              </button>
-
-              {/* Notifications Dropdown Menu */}
-              {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border overflow-hidden z-30" style={{ borderColor: '#E8F5E9' }}>
-                  <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: '#E8F5E9' }}>
-                    <span className="text-sm font-semibold" style={{ color: '#2E7D32' }}>{t('notifications.title') || 'Notifications'}</span>
-                    <button className="text-xs" style={{ color: '#FF6F00' }}>{t('notifications.markAllRead') || 'Mark all read'}</button>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {notifications.map((notif) => (
-                      <div key={notif.id} className="px-4 py-3 hover:bg-green-50 transition-colors cursor-pointer border-b last:border-0" style={{ borderColor: '#F1F8E9' }}>
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full mt-1.5" style={{ background: notif.read ? '#C8E6C9' : '#FF6F00' }}></div>
-                          <div className="flex-1">
-                            <p className="text-sm" style={{ color: notif.read ? '#8D6E63' : '#2E7D32' }}>{notif.title}</p>
-                            <p className="text-[10px] mt-0.5" style={{ color: '#BCAAA4' }}>{notif.time}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="px-4 py-2 border-t text-center" style={{ borderColor: '#E8F5E9' }}>
-                    <button className="text-xs" style={{ color: '#FF6F00' }}>{t('notifications.viewAll') || 'View all notifications'}</button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Settings Button */}
-            <button className="hidden sm:block p-2 rounded-full transition-all duration-300 hover:scale-110" style={{ background: '#F1F8E9' }}>
-              <Settings className="w-5 h-5" style={{ color: '#2E7D32' }} />
-            </button>
 
             {/* Profile Dropdown */}
             <div className="relative" ref={profileRef}>
@@ -166,8 +184,12 @@ const Header = ({ onMenuClick }) => {
                 style={{ borderColor: '#C8E6C9' }}
               >
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold" style={{ color: '#2E7D32' }}>Rajesh Sharma</p>
-                  <p className="text-[10px]" style={{ color: '#FF6F00' }}>{t('account.masterDealer') || 'Master Dealer'}</p>
+                  <p className="text-sm font-bold" style={{ color: '#2E7D32' }}>
+                    {loading ? 'Loading...' : userData.name}
+                  </p>
+                  <p className="text-[10px]" style={{ color: '#FF6F00' }}>
+                    {loading ? '...' : getRoleText(userData.role)}
+                  </p>
                 </div>
                 <div className="relative group">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, #2E7D32, #43A047)' }}>
@@ -177,7 +199,7 @@ const Header = ({ onMenuClick }) => {
                 </div>
               </div>
 
-              {/* Profile Dropdown Menu */}
+              {/* Profile Dropdown Menu - Simplified */}
               {isProfileOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border overflow-hidden z-30" style={{ borderColor: '#E8F5E9' }}>
                   <div className="px-4 py-3 border-b" style={{ borderColor: '#E8F5E9' }}>
@@ -186,35 +208,45 @@ const Header = ({ onMenuClick }) => {
                         <User className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold" style={{ color: '#2E7D32' }}>Rajesh Sharma</p>
-                        <p className="text-xs" style={{ color: '#8D6E63' }}>rajesh@agribroker.com</p>
+                        <p className="text-sm font-semibold" style={{ color: '#2E7D32' }}>
+                          {loading ? 'Loading...' : userData.name}
+                        </p>
+                        <p className="text-xs" style={{ color: '#8D6E63' }}>
+                          {loading ? '...' : userData.email}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <div className="py-2">
-                    <button className="w-full px-4 py-2 text-sm text-left hover:bg-green-50 transition-colors" style={{ color: '#2E7D32' }}>
-                      {t('profile.myProfile') || 'My Profile'}
+                  <div className="py-1">
+                    <button 
+                      onClick={handleAccountClick}
+                      className="w-full px-4 py-2.5 text-sm text-left hover:bg-green-50 transition-colors flex items-center gap-3"
+                      style={{ color: '#2E7D32' }}
+                    >
+                      <User className="w-4 h-4" />
+                      Account
                     </button>
-                    <button className="w-full px-4 py-2 text-sm text-left hover:bg-green-50 transition-colors" style={{ color: '#2E7D32' }}>
-                      {t('profile.accountSettings') || 'Account Settings'}
-                    </button>
-                    <button className="w-full px-4 py-2 text-sm text-left hover:bg-green-50 transition-colors" style={{ color: '#2E7D32' }}>
-                      {t('profile.paymentMethods') || 'Payment Methods'}
-                    </button>
-                  </div>
-                  <div className="border-t py-2" style={{ borderColor: '#E8F5E9' }}>
                     <button 
                       onClick={handleLogout}
                       disabled={isLoggingOut}
-                      className="w-full px-4 py-2 text-sm text-left hover:bg-green-50 transition-colors flex items-center justify-between"
+                      className="w-full px-4 py-2.5 text-sm text-left hover:bg-red-50 transition-colors flex items-center gap-3"
                       style={{ color: '#D84315' }}
                     >
-                      {isLoggingOut ? (t('common.loggingOut') || 'Logging out...') : (t('common.logout') || 'Logout')}
-                      {isLoggingOut && (
-                        <svg className="animate-spin h-4 w-4" style={{ color: '#D84315' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                      {isLoggingOut ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" style={{ color: '#D84315' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Logging out...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Logout
+                        </>
                       )}
                     </button>
                   </div>

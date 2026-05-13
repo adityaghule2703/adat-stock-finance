@@ -3,6 +3,7 @@
     "appName": "कृषीब्रोकर",
     "subtitle": "वित्त आणि व्यापार",
     "search": "शेतकरी, खरेदीदार, व्यवहार शोधा...",
+    "searchPlaceholder": "व्यवहार शोधा...",
     "logout": "लॉगआउट",
     "save": "जतन करा",
     "cancel": "रद्द करा",
@@ -14,7 +15,61 @@
     "generate": "तयार करा",
     "today": "आज",
     "all": "सर्व",
-    "moreFilters": "अधिक फिल्टर"
+    "moreFilters": "अधिक फिल्टर",
+    "retry": "पुन्हा प्रयत्न करा",
+    "filter": "फिल्टर",
+    "export": "निर्यात",
+    "apply": "लागू करा",
+    "loading": "लोड होत आहे...",
+    "actions": "क्रिया",
+    "previous": "मागील",
+    "next": "पुढील",
+    "deactivating": "निष्क्रिय करत आहे...",
+    "refresh": "रेफ्रेश",
+    "viewDetails": "तपशील पहा",
+    "networkError": "नेटवर्क त्रुटी. कृपया आपले कनेक्शन तपासा.",
+    "clearAll": "सर्व साफ करा",
+    "clearFilters": "फिल्टर साफ करा",
+    "processing": "प्रक्रिया करत आहे",
+    "allCategories": "सर्व श्रेणी",
+    "allStatus": "सर्व स्थिती",
+    "deleting": "हटवित आहे",
+    "updating": "अद्यतनित करत आहे",
+    "locking": "लॉक करत आहे",
+    "deactivate": "निष्क्रिय करा",
+    "allModes": "सर्व पद्धती",
+    "allRoles": "सर्व भूमिका",
+    "close": "बंद करा",
+    "allActions": "सर्व क्रिया",
+    "allEntities": "सर्व संस्था",
+    "amount": "रक्कम",
+    "enterAmount": "रक्कम प्रविष्ट करा",
+    "notes": "नोंदी",
+    "optional": "ऐच्छिक",
+    "back": "मागे",
+    "clear": "साफ करा",
+    "showLess": "कमी दाखवा",
+    "viewAll": "सर्व दाखवा ({{count}})",
+    "entries": "नोंदी",
+    "entry": "नोंद",
+    "clearSearch": "शोध साफ करा",
+    "transaction": "व्यवहार",
+    "notProvided": "प्रदान केलेले नाही",
+    "na": "नाही",
+    "notesPlaceholder": "कोणत्याही नोंदी...",
+    "by": "द्वारे",
+    "system": "प्रणाली",
+    "other": "इतर",
+    "backToInventory": "स्टॉककडे परत",
+    "backToWarehouses": "गोदामाकडे परत",
+    "backToExpenses": "खर्चाकडे परत",
+    "email": "ईमेल",
+    "status": "स्थिती",
+    "unknown": "अज्ञात",
+    "tip": "टीप",
+    "backToBudgets": "बजेटकडे परत",
+    "backToUsers": "वापरकर्त्यांकडे परत",
+    "backToPayments": "पेमेंटकडे परत"
   },
 
   "nav": {
@@ -30,11 +85,17 @@
     "payments": "पेमेंट",
     "reports": "अहवाल",
     "financeTrading": "वित्त आणि व्यापार",
-
     "purchases": "खरेदी",
     "sales": "विक्री",
     "expenses": "खर्च",
+    "inventory": "स्टॉक",
+    "warehouses": "गोदामे",
+    "ledger": "लेजर",
+    "expenseLedger": "खर्च लेजर",
+    "combinedLedger": "संयुक्त लेजर",
+    "budgetAlerts": "बजेट सूचना",
     "usersRoles": "वापरकर्ते आणि भूमिका",
+    "auditLogs": "ऑडिट लॉग",
     "settings": "सेटिंग्ज",
     "mainNav": "मार्गदर्शन"
   },
@@ -80,7 +141,20 @@
     "address": "पत्ता",
     "gstNumber": "जीएसटी क्रमांक",
     "bankAccount": "बँक खाते",
-    "ifscCode": "आयएफएससी कोड"
+    "ifscCode": "आयएफएससी कोड",
+    "loading": "प्रोफाइल लोड करत आहे...",
+    "member": "सदस्य",
+    "businessName": "व्यवसाय नाव",
+    "city": "शहर",
+    "state": "राज्य",
+    "panNumber": "पॅन क्रमांक",
+    "bankName": "बँक नाव",
+    "bankAccountNumber": "बँक खाते क्रमांक",
+    "errors": {
+      "fetchFailed": "वापरकर्ता डेटा आणण्यात अयशस्वी",
+      "invalidResponse": "अवैध प्रतिसाद रचना",
+      "loadError": "प्रोफाइल लोड करण्यात त्रुटी"
+    }
   },
 
   "receipts": {
@@ -111,6 +185,988 @@
     "marketInsights": "बाजार अंतर्दृष्टी",
     "marketMessage": "गव्हाच्या किंमती या आठवड्यात ८% वाढण्याची शक्यता",
     "buying": "खरेदी",
-    "selling": "विक्री"
+    "selling": "विक्री",
+    "purchases": "खरेदी",
+    "expenses": "खर्च",
+    "netProfitLoss": "निव्वळ नफा/तोटा",
+    "profitMargin": "नफा मार्जिन"
+  },
+
+  "farmers": {
+    "title": "शेतकरी",
+    "subtitle": "सर्व शेतकरी व्यवस्थापित करा",
+    "loading": "शेतकरी लोड होत आहेत...",
+    "loadingPayments": "देयक इतिहास लोड होत आहे...",
+    "loadingDues": "बाकी माहिती लोड करत आहे...",
+    "searchPlaceholder": "शेतकरी शोधा...",
+    "noFarmersFound": "शेतकरी आढळले नाहीत",
+    "farmerId": "शेतकरी आयडी",
+    "memberSince": "सदस्यता दिनांक",
+    "fullName": "पूर्ण नाव",
+    "mobileNumber": "मोबाईल नंबर",
+    "personalInfo": "वैयक्तिक माहिती",
+    "financialSummary": "आर्थिक सारांश",
+    "bankDetails": "बँक तपशील",
+    "bankName": "बँक नाव",
+    "accountNumber": "खाते नंबर",
+    "ifscCode": "आयएफएससी कोड",
+    "address": "पत्ता",
+    "village": "गाव",
+    "city": "शहर",
+    "state": "राज्य",
+    "gstNumber": "जीएसटी नंबर",
+    "totalPurchases": "एकूण खरेदी",
+    "totalPurchaseValue": "एकूण खरेदी मूल्य",
+    "totalPaid": "एकूण भरलेले",
+    "advanceBalance": "अग्रिम शिल्लक",
+    "pendingDues": "प्रलंबित रक्कम",
+    "pendingPurchaseDues": "प्रलंबित खरेदी बाकी",
+    "totalPendingPurchases": "एकूण प्रलंबित (खरेदी)",
+    "netAmountDue": "निव्वळ देय रक्कम",
+    "netAmountReceivable": "निव्वळ प्राप्त करण्यायोग्य रक्कम",
+    "overallStatus": "एकूण स्थिती",
+    "ledgerStatement": "लेजर स्टेटमेंट",
+    "noLedgerEntries": "लेजर नोंदी आढळल्या नाहीत",
+    "paymentHistory": "देयक इतिहास",
+    "advanceTransactions": "अग्रिम व्यवहार आणि लेजर",
+    "advancePaymentHistory": "अग्रिम देयक इतिहास",
+    "duesTitle": "शेतकरी बाकी",
+    "duesSubtitle": "प्रलंबित देयके आणि अग्रिम शिल्लक",
+    "noAdvanceTransactions": "अग्रिम व्यवहार आढळले नाहीत",
+    "noPendingDues": "प्रलंबित खरेदी बाकी नाही",
+    "allSettled": "सर्व खरेदी देयके सेटल आहेत",
+    "transactionLedger": "व्यवहार लेजर",
+    "noTransactionsFound": "व्यवहार आढळले नाहीत",
+    "currentBalance": "सध्याची शिल्लक",
+  "totalAdvanceGiven": "एकूण अग्रिम दिले",
+  "totalAdjusted": "एकूण समायोजित",
+  "netOutstanding": "निव्वळ बाकी",
+    "noTransactionsMatch": "यासाठी व्यवहार आढळले नाहीत",
+    "by": "द्वारे",
+    "paymentTypes": {
+      "advanceGiven": "अग्रिम दिले",
+      "advanceAdjusted": "अग्रिम समायोजित"
+    },
+    "status": {
+      "label": "स्थिती",
+      "active": "सक्रिय",
+      "inactive": "निष्क्रिय",
+      "advanceExceedsDues": "अग्रिम बाकीपेक्षा जास्त",
+      "duesPending": "बाकी प्रलंबित",
+      "paymentPending": "देयक प्रलंबित",
+      "settled": "सेटल",
+      "partialPayment": "अंशतः देयक"
+    },
+    "stats": {
+      "totalFarmers": "एकूण शेतकरी",
+      "totalPurchaseValue": "एकूण खरेदी मूल्य",
+      "pendingDues": "प्रलंबित रक्कम",
+      "activeFarmers": "सक्रिय शेतकरी"
+    },
+    "filters": {
+      "status": "स्थिती",
+      "city": "शहर",
+      "state": "राज्य",
+      "cityPlaceholder": "शहरानुसार फिल्टर करा",
+      "statePlaceholder": "राज्यानुसार फिल्टर करा"
+    },
+    "table": {
+      "name": "नाव",
+      "contact": "संपर्क",
+      "location": "ठिकाण",
+      "purchaseValue": "खरेदी मूल्य",
+      "pendingDues": "प्रलंबित रक्कम",
+      "status": "स्थिती",
+      "joined": "सहभागी दिनांक",
+      "actions": "क्रिया",
+      "date": "दिनांक",
+      "type": "प्रकार",
+      "description": "वर्णन",
+      "debit": "नावे",
+      "credit": "जमा",
+      "balance": "शिल्लक",
+      "dateTime": "दिनांक आणि वेळ",
+      "createdBy": "निर्मिती कर्ता",
+      "purchaseDate": "खरेदी दिनांक",
+      "receiptNo": "पावती क्र.",
+      "grossTotal": "एकूण रक्कम",
+      "finalPayable": "अंतिम देय",
+      "paidAmount": "भरलेली रक्कम",
+      "pendingAmount": "प्रलंबित रक्कम"
+    },
+    "tabs": {
+      "farmerDetails": "शेतकरी तपशील",
+      "ledgerStatement": "लेजर स्टेटमेंट"
+    },
+    "ledgerTypes": {
+      "purchase": "खरेदी",
+      "payment": "पेमेंट",
+      "advanceGiven": "अग्रिम दिले",
+      "advanceAdjusted": "अग्रिम समायोजित"
+    },
+    "buttons": {
+      "addNew": "नवीन शेतकरी",
+      "clearFilters": "फिल्टर साफ करा",
+      "deactivate": "निष्क्रिय करा"
+    },
+    "actions": {
+      "viewPayments": "पेमेंट पहा",
+      "viewDues": "बाकी पहा",
+      "deactivate": "निष्क्रिय करा",
+      "advancePayment": "अग्रिम पेमेंट"
+    },
+    "modals": {
+      "deactivate": {
+        "title": "शेतकरी निष्क्रिय करा",
+        "subtitle": "निष्क्रियतेची पुष्टी करा",
+        "confirmMessage": "तुम्ही खात्री करून {{name}} ला निष्क्रिय करू इच्छिता?",
+        "warningMessage": "या क्रियेमुळे शेतकरी खाते निष्क्रिय होईल. पुन्हा सक्रिय होईपर्यंत ते खरेदी करू शकणार नाहीत किंवा त्यांच्या खात्यात प्रवेश करू शकणार नाहीत."
+      },
+      "advance": {
+        "title": "{{name}} ला अग्रिम द्या",
+        "currentDues": "सध्याची प्रलंबित रक्कम"
+      }
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} शेतकरी",
+      "showingFarmers": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} शेतकरी",
+      "showingOperators": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} ऑपरेटर"
+    },
+    "messages": {
+      "deactivateSuccess": "{{name}} यशस्वीरित्या निष्क्रिय करण्यात आला आहे"
+    },
+    "errors": {
+      "fetchFailed": "शेतकरी आणण्यात अयशस्वी",
+      "networkError": "नेटवर्क त्रुटी. कृपया आपले कनेक्शन तपासा.",
+      "deactivateFailed": "शेतकरी निष्क्रिय करण्यात अयशस्वी",
+      "validAmountRequired": "कृपया वैध रक्कम प्रविष्ट करा",
+      "advanceFailed": "अग्रिम देण्यात अयशस्वी",
+      "notFound": "शेतकरी आढळला नाही"
+    }
+  },
+
+ "purchases": {
+  "title": "खरेदी",
+  "subtitle": "सर्व खरेदी व्यवहार व्यवस्थापित करा",
+  "loading": "खरेदी लोड होत आहेत...",
+  "searchPlaceholder": "खरेदी शोधा...",
+  "noPurchasesFound": "खरेदी आढळली नाहीत",
+  "items": "वस्तू",
+  "stats": {
+    "totalPurchases": "एकूण खरेदी",
+    "grossTotal": "एकूण रक्कम",
+    "totalDeductions": "एकूण कपात",
+    "finalPayable": "अंतिम देय"
+  },
+  "status": {
+    "draft": "ड्राफ्ट",
+    "saved": "जतन केले",
+    "partial": "अंशतः",
+    "paid": "भरलेले",
+    "completed": "पूर्ण",
+    "cancelled": "रद्द"
+  },
+  "filters": {
+    "startDate": "प्रारंभ दिनांक",
+    "endDate": "शेवटची तारीख",
+    "status": "स्थिती"
+  },
+  "table": {
+    "receiptNo": "पावती क्र.",
+    "date": "दिनांक",
+    "farmer": "शेतकरी",
+    "products": "उत्पादने",
+    "grossTotal": "एकूण रक्कम",
+    "deductions": "कपात",
+    "finalPayable": "अंतिम देय",
+    "status": "स्थिती",
+    "actions": "क्रिया",
+    "product": "उत्पादन",
+    "bagsWeight": "पोती × वजन",
+    "actualQty": "वास्तविक प्रमाण",
+    "qualityDeduction": "गुणवत्ता कपात",
+    "billedQty": "बिल केलेले प्रमाण",
+    "rate": "दर",
+    "total": "एकूण"
+  },
+  "buttons": {
+    "newPurchase": "नवीन खरेदी",
+    "editFullDetails": "संपूर्ण तपशील संपादित करा",
+    "updateStatus": "स्थिती अद्यतनित करा",
+    "lockRate": "दर लॉक करा",
+    "printReceipt": "पावती छापा"
+  },
+  "modals": {
+    "updateStatus": {
+      "title": "खरेदी स्थिती अद्यतनित करा",
+      "receiptLabel": "पावती",
+      "statusLabel": "स्थिती",
+      "notesLabel": "नोंदी",
+      "notesPlaceholder": "या स्थिती अद्यतनाबद्दल नोंदी जोडा..."
+    },
+    "lockRate": {
+      "title": "दर लॉक करा",
+      "receiptLabel": "पावती",
+      "selectProduct": "उत्पादन निवडा",
+      "currentRate": "सध्याचा दर",
+      "newRate": "नवीन दर (प्रति युनिट)",
+      "ratePlaceholder": "नवीन दर प्रविष्ट करा",
+      "reason": "दर लॉक करण्याचे कारण",
+      "reasonPlaceholder": "उदा., बाजारभाव वाढला, शेतकऱ्याशी विशेष करार, इ."
+    }
+  },
+  "pagination": {
+    "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} खरेदी"
+  },
+  "messages": {
+    "cannotEdit": "{{status}} खरेदी संपादित करू शकत नाही. फक्त ड्राफ्ट, जतन केलेल्या किंवा अंशतः खरेदी संपादित केल्या जाऊ शकतात.",
+    "statusUpdated": "खरेदी स्थिती यशस्वीरित्या अद्यतनित केली!",
+    "validRateRequired": "कृपया वैध दर प्रविष्ट करा",
+    "reasonRequired": "कृपया दर लॉक करण्याचे कारण प्रदान करा",
+    "rateLocked": "दर यशस्वीरित्या लॉक केला!"
+  },
+  "errors": {
+    "fetchFailed": "खरेदी आणण्यात अयशस्वी",
+    "statusUpdateFailed": "खरेदी स्थिती अद्यतनित करण्यात अयशस्वी",
+    "rateLockFailed": "दर लॉक करण्यात अयशस्वी",
+    "notFound": "खरेदी आढळली नाही"
+  },
+  "tooltips": {
+    "editFull": "पूर्ण अद्यतनासाठी संपादित करा",
+    "updateStatusOnly": "फक्त स्थिती आणि नोंदी अद्यतनित करा",
+    "cannotEdit": "ही खरेदी संपादित करू शकत नाही"
+  },
+  "detailsTitle": "खरेदी तपशील",
+  "receipt": "पावती",
+  "createdBy": "निर्मिती कर्ता",
+  "on": "रोजी",
+  "amountDue": "थकबाकी रक्कम",
+  "farmerInformation": "शेतकरी माहिती",
+  "purchaseInformation": "खरेदी माहिती",
+  "createdOn": "तयार केले",
+  "productsPurchased": "खरेदी केलेली उत्पादने",
+  "bags": "पोती",
+  "deductionsCharges": "कपात आणि शुल्क",
+  "commission": "कमिशन",
+  "return": "परतावा",
+  "advanceAdjusted": "अग्रिम समायोजित",
+  "other": "इतर",
+  "totalDeductions": "एकूण कपात",
+  "paymentSummary": "देयक सारांश",
+  "amountPaid": "भरलेली रक्कम",
+  "finalPayable": "अंतिम देय",
+  "grossTotal": "एकूण रक्कम"
+},
+
+  "inventory": {
+    "title": "स्टॉक",
+    "subtitle": "सर्व स्टॉक पातळी व्यवस्थापित करा",
+    "loading": "स्टॉक लोड होत आहे...",
+    "loadingStockDetails": "स्टॉक तपशील लोड करत आहे...",
+    "stockDetailsSubtitle": "सर्व गोदामांमधील स्टॉक तपशील",
+    "totalStockAllWarehouses": "सर्व गोदामांमधील एकूण स्टॉक",
+    "units": "युनिट्स",
+    "stockByWarehouse": "गोदाम निहाय स्टॉक",
+    "searchPlaceholder": "उत्पादने शोधा...",
+    "noItemsFound": "स्टॉक आढळले नाहीत",
+    "stats": {
+      "totalProducts": "एकूण उत्पादने",
+      "totalStock": "एकूण स्टॉक (युनिट्स)",
+      "lowStockItems": "कमी स्टॉक असलेल्या वस्तू",
+      "warehouses": "गोदामे"
+    },
+    "status": {
+      "outOfStock": "स्टॉक संपला",
+      "lowStock": "कमी स्टॉक",
+      "inStock": "स्टॉकमध्ये"
+    },
+    "table": {
+      "product": "उत्पादन",
+      "warehouse": "गोदाम",
+      "currentStock": "सध्याचा स्टॉक",
+      "unit": "युनिट",
+      "status": "स्थिती",
+      "lastUpdated": "शेवटचे अद्यतन",
+      "actions": "क्रिया"
+    },
+    "filters": {
+      "warehouse": "गोदाम",
+      "allWarehouses": "सर्व गोदामे",
+      "lowStockOnly": "फक्त कमी स्टॉक",
+      "lowStockLabel": "फक्त १० युनिट्सपेक्षा कमी स्टॉक असलेली उत्पादने दाखवा"
+    },
+    "buttons": {
+      "adjustStock": "स्टॉक समायोजित करा",
+      "transferStock": "स्टॉक स्थानांतरित करा"
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} वस्तू"
+    },
+    "errors": {
+      "fetchFailed": "स्टॉक आणण्यात अयशस्वी",
+      "fetchStockFailed": "स्टॉक तपशील आणण्यात अयशस्वी"
+    }
+  },
+
+  "warehouses": {
+    "title": "गोदामे",
+    "subtitle": "सर्व स्टोरेज सुविधा व्यवस्थापित करा",
+    "loading": "गोदामे लोड होत आहेत...",
+    "searchPlaceholder": "नाव, कोड किंवा शहरानुसार शोधा...",
+    "noWarehousesFound": "गोदामे आढळली नाहीत",
+    "units": "युनिट्स",
+    "unitLabel": "युनिट्स",
+    "used": "वापरलेले",
+    "productsCount": "उत्पादने",
+    "code": "कोड",
+    "warehouseInformation": "गोदाम माहिती",
+    "location": "ठिकाण",
+    "managerDetails": "व्यवस्थापक तपशील",
+    "managerName": "व्यवस्थापक नाव",
+    "capacityUsage": "क्षमता वापर",
+    "total": "एकूण",
+    "capacityUtilized": "क्षमता वापरली",
+    "inventorySummary": "स्टॉक सारांश",
+    "productsStored": "साठवलेली उत्पादने",
+    "totalStockUnits": "एकूण स्टॉक युनिट्स",
+    "stockDetails": "स्टॉक तपशील",
+    "createdBy": "निर्मिती कर्ता",
+    "stats": {
+      "totalWarehouses": "एकूण गोदामे",
+      "activeWarehouses": "सक्रिय गोदामे",
+      "totalCapacity": "एकूण क्षमता",
+      "totalStock": "एकूण स्टॉक"
+    },
+    "status": {
+      "active": "सक्रिय",
+      "inactive": "निष्क्रिय",
+      "label": "स्थिती"
+    },
+    "table": {
+      "code": "कोड",
+      "name": "नाव",
+      "location": "ठिकाण",
+      "manager": "व्यवस्थापक",
+      "capacity": "क्षमता",
+      "stock": "स्टॉक",
+      "status": "स्थिती",
+      "actions": "क्रिया"
+    },
+    "filters": {
+      "status": "स्थिती"
+    },
+    "buttons": {
+      "addWarehouse": "गोदाम जोडा",
+      "deactivate": "निष्क्रिय करा",
+      "deletePermanently": "कायमचे हटवा"
+    },
+    "modals": {
+      "deactivate": {
+        "title": "गोदाम निष्क्रिय करा",
+        "subtitle": "निष्क्रियतेची पुष्टी करा",
+        "confirmMessage": "तुम्ही खात्री करून {{name}} ला निष्क्रिय करू इच्छिता?",
+        "warningMessage": "हे गोदाम निष्क्रिय होईल आणि भविष्यातील व्यवहारांसाठी वापरले जाऊ शकणार नाही."
+      },
+      "delete": {
+        "title": "गोदाम हटवा",
+        "subtitle": "गोदाम कायमचे हटवा",
+        "confirmMessage": "तुम्ही खात्री करून {{name}} कायमचे हटवू इच्छिता?",
+        "warningMessage": "ही क्रिया उलटवता येणार नाही. या गोदामाशी संबंधित सर्व डेटा कायमचा हटविला जाईल."
+      }
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} गोदामे"
+    },
+    "errors": {
+      "fetchFailed": "गोदामे आणण्यात अयशस्वी",
+      "deactivateFailed": "गोदाम निष्क्रिय करण्यात अयशस्वी",
+      "deleteFailed": "गोदाम हटविण्यात अयशस्वी"
+    }
+  },
+
+  "expenses": {
+    "title": "खर्च",
+    "subtitle": "सर्व व्यावसायिक खर्च ट्रॅक करा",
+    "loading": "खर्च लोड होत आहेत...",
+    "searchPlaceholder": "वर्णन, दिलेले किंवा संदर्भानुसार शोधा...",
+    "noExpensesFound": "खर्च आढळले नाहीत",
+    "to": "दिलेले",
+    "ref": "संदर्भ",
+    "stats": {
+      "totalExpenses": "एकूण खर्च",
+      "totalAmount": "एकूण रक्कम",
+      "created": "तयार केलेले",
+      "cancelled": "रद्द केलेले"
+    },
+    "status": {
+      "created": "तयार केलेले",
+      "cancelled": "रद्द केलेले",
+      "unknown": "अज्ञात",
+      "approved": "मंजूर",
+      "autoApproved": "स्वयं मंजूर",
+      "pending": "प्रलंबित",
+      "rejected": "नाकारले"
+    },
+    "categories": {
+      "transport": "वाहतूक आणि लॉजिस्टिक्स",
+      "labour": "कामगार आणि मजुरी",
+      "marketFees": "बाजार शुल्क",
+      "storage": "स्टोरेज आणि कोल्ड चेन",
+      "shopOffice": "दुकान आणि कार्यालय",
+      "repairs": "दुरुस्ती आणि देखभाल",
+      "banking": "बँकिंग आणि वित्त",
+      "marketing": "विपणन आणि विविध"
+    },
+    "filters": {
+      "startDate": "प्रारंभ दिनांक",
+      "endDate": "शेवटची तारीख",
+      "category": "श्रेणी",
+      "status": "स्थिती"
+    },
+    "table": {
+      "date": "दिनांक",
+      "category": "श्रेणी",
+      "description": "वर्णन",
+      "amount": "रक्कम",
+      "paidBy": "द्वारे भरलेले",
+      "status": "स्थिती",
+      "actions": "क्रिया"
+    },
+    "buttons": {
+      "addExpense": "खर्च जोडा",
+      "cancelExpense": "खर्च रद्द करा",
+      "confirmCancellation": "रद्दीकरणाची पुष्टी करा"
+    },
+    "modals": {
+      "cancel": {
+        "title": "खर्च रद्द करा",
+        "subtitle": "रद्दीकरणाची पुष्टी करा",
+        "confirmMessage": "तुम्ही खात्री करून {{amount}} रुपयांचा खर्च '{{description}}' साठी रद्द करू इच्छिता?",
+        "reasonLabel": "रद्दीकरणाचे कारण",
+        "reasonPlaceholder": "हा खर्च रद्द करण्याचे कारण प्रविष्ट करा..."
+      }
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} खर्च"
+    },
+    "errors": {
+      "fetchFailed": "खर्च आणण्यात अयशस्वी",
+      "reasonRequired": "कृपया रद्दीकरणाचे कारण प्रदान करा",
+      "cancelFailed": "खर्च रद्द करण्यात अयशस्वी",
+      "approveFailed": "खर्च मंजूर करण्यात अयशस्वी",
+      "rejectFailed": "खर्च नाकारण्यात अयशस्वी",
+      "notFound": "खर्च आढळला नाही"
+    },
+    "detailsTitle": "खर्च तपशील",
+    "id": "आयडी",
+    "approvedBy": "मंजूर केले",
+    "amount": "रक्कम",
+    "approve": "मंजूर करा",
+    "reject": "नाकारा",
+    "expenseInformation": "खर्च माहिती",
+    "category": "श्रेणी",
+    "description": "वर्णन",
+    "expenseDate": "खर्च दिनांक",
+    "paidTo": "दिलेले",
+    "paymentDetails": "देयक तपशील",
+    "paymentMethod": "देयक पद्धत",
+    "referenceNumber": "संदर्भ क्रमांक",
+    "createdBy": "निर्मिती कर्ता",
+    "createdAt": "तयार केले",
+    "approvedAt": "मंजूर केले",
+    "remarks": "टिप्पण्या",
+    "rejectExpense": "खर्च नाकारा",
+    "cancelExpense": "खर्च रद्द करा",
+    "rejectionReasonPlaceholder": "नकार देण्याचे कारण...",
+    "cancellationReasonPlaceholder": "रद्द करण्याचे कारण...",
+    "confirmReject": "नकाराची पुष्टी करा",
+    "confirmCancel": "रद्दीकरणाची पुष्टी करा"
+  },
+
+  "budgetAlerts": {
+    "title": "बजेट सूचना",
+    "subtitle": "मासिक बजेट मर्यादा सेट करा आणि खर्च ट्रॅक करा",
+    "loading": "बजेट सूचना लोड होत आहेत...",
+    "searchPlaceholder": "श्रेणी शोधा...",
+    "noBudgetsFound": "या महिन्यासाठी बजेट सेट नाही. बजेट सेट करण्यासाठी 'बजेट सेट करा' क्लिक करा.",
+    "stats": {
+      "totalBudget": "एकूण बजेट",
+      "totalSpend": "एकूण खर्च",
+      "remainingBudget": "उर्वरित बजेट",
+      "utilization": "वापर"
+    },
+    "alertLevels": {
+      "critical": "गंभीर",
+      "warning": "चेतावणी",
+      "normal": "सामान्य"
+    },
+    "table": {
+      "category": "श्रेणी",
+      "monthlyLimit": "मासिक मर्यादा",
+      "currentSpend": "सध्याचा खर्च",
+      "remaining": "उर्वरित",
+      "usage": "वापर",
+      "status": "स्थिती",
+      "alertThreshold": "सूचना मर्यादा",
+      "actions": "क्रिया"
+    },
+    "buttons": {
+      "setBudget": "बजेट सेट करा",
+      "editBudget": "बजेट संपादित करा"
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} बजेट"
+    },
+    "errors": {
+      "statusLoadFailed": "बजेट स्थिती लोड करण्यात अयशस्वी"
+    },
+    "detailsTitle": "बजेट तपशील",
+    "detailsSubtitle": "संपूर्ण बजेट माहिती पहा",
+    "category": "श्रेणी",
+    "monthlyLimit": "मासिक मर्यादा",
+    "currentSpend": "सध्याचा खर्च",
+    "remainingBudget": "उर्वरित बजेट",
+    "utilization": "वापर",
+    "budgetUsage": "बजेट वापर",
+    "used": "वापरले",
+    "month": "महिना",
+    "alertThreshold": "सूचना मर्यादा",
+    "createdOn": "तयार केले",
+    "lastUpdated": "शेवटचे अद्यतन",
+    "createdBy": "निर्मिती कर्ता",
+    "tipMessage": "जेव्हा खर्च आपल्या सूचना मर्यादेपर्यंत पोहोचतो तेव्हा बजेट सूचना ट्रिगर होतात ({{threshold}}%). आपल्याला बजेट मर्यादेजवळ पोहोचताना किंवा ओलांडताना सूचना प्राप्त होतील.",
+    "messages": {
+      "limitExceeded": "बजेट मर्यादा ओलांडली!",
+      "approachingLimit": "बजेट मर्यादेजवळ!",
+      "withinLimits": "बजेट मर्यादेत"
+    }
+  },
+
+  "ledger": {
+    "title": "लेजर",
+    "subtitle": "सर्व आर्थिक व्यवहारांचा मागोवा ठेवा",
+    "loading": "लेजर लोड होत आहे...",
+    "tabs": {
+      "farmersLedger": "शेतकरी लेजर",
+      "operatorsLedger": "ऑपरेटर लेजर"
+    },
+    "stats": {
+      "totalFarmers": "एकूण शेतकरी",
+      "totalTransactions": "एकूण व्यवहार",
+      "totalPayments": "एकूण देयके",
+      "totalPurchases": "एकूण खरेदी",
+      "totalOperators": "एकूण ऑपरेटर",
+      "totalSales": "एकूण विक्री",
+      "totalPurchasesOperator": "एकूण खरेदी",
+      "netProfit": "निव्वळ नफा"
+    },
+    "search": {
+      "farmersPlaceholder": "शेतकरी नाव किंवा मोबाईलने शोधा...",
+      "operatorsPlaceholder": "ऑपरेटर नाव, ईमेल किंवा फोनने शोधा..."
+    },
+    "filters": {
+      "startDate": "प्रारंभ दिनांक",
+      "endDate": "शेवटची तारीख"
+    },
+    "table": {
+      "farmer": "शेतकरी",
+      "operator": "ऑपरेटर",
+      "contact": "संपर्क",
+      "totalPaid": "एकूण भरलेले",
+      "totalPurchased": "एकूण खरेदी केलेले",
+      "totalPurchasedOperator": "एकूण खरेदी",
+      "balance": "शिल्लक",
+      "totalSales": "एकूण विक्री",
+      "netProfit": "निव्वळ नफा",
+      "actions": "क्रिया"
+    },
+    "buttons": {
+      "printSummary": "सारांश छापा"
+    },
+    "pagination": {
+      "showingFarmers": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} शेतकरी",
+      "showingOperators": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} ऑपरेटर"
+    },
+    "noFarmersFound": "शेतकरी आढळले नाहीत",
+    "noOperatorsFound": "ऑपरेटर आढळले नाहीत",
+    "print": {
+      "farmerTitle": "शेतकरी लेजर",
+      "farmerStatement": "शेतकरी लेजर स्टेटमेंट",
+      "operatorTitle": "ऑपरेटर लेजर",
+      "operatorStatement": "ऑपरेटर लेजर स्टेटमेंट",
+      "farmerDetails": "शेतकरी तपशील",
+      "operatorDetails": "ऑपरेटर तपशील",
+      "name": "नाव",
+      "mobile": "मोबाईल",
+      "email": "ईमेल",
+      "phone": "फोन",
+      "role": "भूमिका",
+      "totalReceived": "एकूण प्राप्त",
+      "totalPurchased": "एकूण खरेदी",
+      "currentBalance": "सध्याची शिल्लक",
+      "totalSales": "एकूण विक्री",
+      "totalExpenses": "एकूण खर्च",
+      "netProfit": "निव्वळ नफा",
+      "recentTransactions": "अलीकडील व्यवहार",
+      "date": "दिनांक",
+      "description": "वर्णन",
+      "debit": "नावे",
+      "credit": "जमा",
+      "balance": "शिल्लक",
+      "farmer": "शेतकरी"
+    },
+    "errors": {
+      "fetchFarmersFailed": "शेतकरी लेजर आणण्यात अयशस्वी",
+      "fetchOperatorsFailed": "ऑपरेटर लेजर आणण्यात अयशस्वी"
+    }
+  },
+
+"payments": {
+  "title": "पेमेंट",
+  "subtitle": "सर्व शेतकरी पेमेंट ट्रॅक करा",
+  "loading": "पेमेंट लोड होत आहेत...",
+  "searchPlaceholder": "पावती क्रमांक, शेतकरी नावानुसार शोधा...",
+  "noPaymentsFound": "पेमेंट आढळले नाहीत",
+  "paymentMode": "पेमेंट पद्धत",
+  "paymentStatus": "पेमेंट स्थिती",
+  "paymentAmount": "पेमेंट रक्कम",
+  "paymentDate": "पेमेंट दिनांक",
+  "paymentInformation": "पेमेंट माहिती",
+  "farmerInformation": "शेतकरी माहिती",
+  "transactionDetails": "व्यवहार तपशील",
+  "chequeDetails": "चेक तपशील",
+  "chequeNumber": "चेक क्रमांक",
+  "chequeDate": "चेक दिनांक",
+  "chequeStatusLabel": "चेक स्थिती",
+  "purchaseReference": "खरेदी संदर्भ",
+  "receiptNumber": "पावती क्रमांक",
+  "purchaseDate": "खरेदी दिनांक",
+  "finalPayable": "अंतिम देय",
+  "purchaseStatus": "खरेदी स्थिती",
+  "amountPaid": "भरलेली रक्कम",
+  "amountDue": "थकबाकी रक्कम",
+  "lastUpdated": "शेवटचे अद्यतन",
+  "createdBy": "निर्मिती कर्ता",
+  "referenceNumber": "संदर्भ क्रमांक",
+  "referencePlaceholder": "व्यवहार ID / चेक क्रमांक",
+  "detailsTitle": "पेमेंट तपशील",
+  "id": "आयडी",
+  "stats": {
+    "totalAmount": "एकूण रक्कम",
+    "cash": "रोकड",
+    "upiBank": "UPI / बँक",
+    "cheque": "चेक"
+  },
+  "modes": {
+    "cash": "रोकड",
+    "upi": "UPI",
+    "bank": "बँक ट्रान्सफर",
+    "cheque": "चेक",
+    "other": "इतर",
+    "paymentMode": "पेमेंट पद्धत"
+  },
+  "chequeStatus": {
+    "cleared": "क्लियर",
+    "pending": "प्रलंबित",
+    "bounced": "बाउन्स",
+    "notUpdated": "अपडेट नाही"
+  },
+  "filters": {
+    "startDate": "प्रारंभ दिनांक",
+    "endDate": "शेवटची तारीख",
+    "paymentMode": "पेमेंट पद्धत"
+  },
+  "table": {
+    "receiptNo": "पावती क्र.",
+    "paymentDate": "पेमेंट दिनांक",
+    "farmer": "शेतकरी",
+    "purchase": "खरेदी",
+    "amount": "रक्कम",
+    "mode": "पद्धत",
+    "actions": "क्रिया",
+    "farmerName": "शेतकरी नाव",
+    "purchaseDate": "खरेदी दिनांक",
+    "finalPayable": "अंतिम देय",
+    "amountDue": "थकबाकी रक्कम",
+    "status": "स्थिती",
+    "overdue": "मुदतवाढीचे"
+  },
+  "buttons": {
+    "newPayment": "नवीन पेमेंट",
+    "dueSummary": "बाकी सारांश",
+    "updateChequeStatus": "चेक स्थिती अपडेट करा",
+    "updateStatus": "स्थिती अपडेट करा"
+  },
+  "modals": {
+    "cheque": {
+      "title": "चेक स्थिती अपडेट करा",
+      "subtitle": "चेक क्लियरन्स स्थिती बदला",
+      "receiptLabel": "पावती क्रमांक",
+      "amountLabel": "रक्कम",
+      "farmerLabel": "शेतकरी",
+      "statusLabel": "चेक स्थिती"
+    }
+  },
+  "pagination": {
+    "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} पेमेंट"
+  },
+  "messages": {
+    "chequeStatusUpdated": "चेक स्थिती यशस्वीरित्या अपडेट केली!"
+  },
+  "errors": {
+    "fetchFailed": "पेमेंट आणण्यात अयशस्वी",
+    "userInfoFailed": "वापरकर्ता माहिती मिळवू शकत नाही. कृपया पुन्हा प्रयत्न करा.",
+    "statusUpdateFailed": "चेक स्थिती अपडेट करण्यात अयशस्वी",
+    "notFound": "पेमेंट आढळले नाही",
+    "operatorNotFound": "ऑपरेटर आयडी आढळला नाही"
+  },
+  "status": {
+    "completed": "पूर्ण",
+    "fullyPaid": "पूर्ण भरले",
+    "partialPayment": "अंशतः देयक",
+    "pending": "प्रलंबित"
+  },
+  "loadingDueSummary": "थकबाकी सारांश लोड करत आहे...",
+  "dueSummaryTitle": "थकबाकी सारांश अहवाल",
+  "dueSummarySubtitle": "प्रलंबित देयके आणि मुदतवाढीची स्थिती",
+  "totalDueAmount": "एकूण देय रक्कम",
+  "totalOverdueAmount": "एकूण मुदतवाढीची रक्कम",
+  "overdueAmount": "मुदतवाढीची रक्कम",
+  "totalPurchases": "एकूण खरेदी",
+  "duePurchases": "थकबाकी खरेदी",
+  "summaryOverview": "सारांश विहंगावलोकन",
+  "farmerWise": "शेतकरी निहाय",
+  "allPurchases": "सर्व खरेदी",
+  "statusBreakdown": "स्थिती विभाजन",
+  "farmersWithDues": "थकबाकी असलेले शेतकरी",
+  "overdueSummary": "मुदतवाढीचा सारांश",
+  "overduePeriod": "मुदतवाढीचा कालावधी (दिवस)",
+  "overduePurchases": "मुदतवाढीच्या खरेदी",
+  "noFarmersWithDues": "थकबाकी असलेले शेतकरी नाहीत",
+  "noFarmersFound": "शेतकरी आढळले नाहीत",
+  "noPurchasesFound": "खरेदी आढळली नाहीत",
+  "searchFarmerPlaceholder": "शेतकरी नाव किंवा मोबाईलने शोधा...",
+  "searchPurchasePlaceholder": "शेतकरी नाव किंवा पावती क्रमांकाने शोधा...",
+  "showOnlyOverdue": "फक्त मुदतवाढीच्या खरेदी दाखवा",
+  "totalDue": "एकूण देय",
+  "purchases": "खरेदी",
+  "overdue": "मुदतवाढीचे",
+  "days": "दिवस",
+  "yes": "होय",
+  "no": "नाही"
+},
+
+  "sales": {
+    "title": "विक्री",
+    "subtitle": "सर्व विक्री पावत्या व्यवस्थापित करा",
+    "loading": "विक्री लोड होत आहे...",
+    "searchPlaceholder": "पावती क्रमांक, खरेदीदार नाव किंवा मोबाईलने शोधा...",
+    "noSalesFound": "विक्री आढळली नाहीत",
+    "items": "वस्तू",
+    "stats": {
+      "totalSales": "एकूण विक्री",
+      "totalRevenue": "एकूण उत्पन्न",
+      "itemsSold": "विक्री झालेल्या वस्तू"
+    },
+    "filters": {
+      "startDate": "प्रारंभ दिनांक",
+      "endDate": "शेवटची तारीख"
+    },
+    "table": {
+      "invoiceNo": "पावती क्र.",
+      "date": "दिनांक",
+      "buyer": "खरेदीदार",
+      "items": "वस्तू",
+      "subtotal": "उप-एकूण",
+      "gst": "GST",
+      "grandTotal": "एकूण",
+      "actions": "क्रिया"
+    },
+    "buttons": {
+      "newSale": "नवीन विक्री",
+      "printInvoice": "पावती छापा"
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} विक्री"
+    },
+    "errors": {
+      "fetchFailed": "विक्री आणण्यात अयशस्वी"
+    }
+  },
+
+  "users": {
+    "title": "वापरकर्ते",
+    "subtitle": "सिस्टम वापरकर्ते आणि त्यांच्या भूमिका व्यवस्थापित करा",
+    "loading": "वापरकर्ते लोड होत आहेत...",
+    "searchPlaceholder": "नाव, ईमेल किंवा फोनद्वारे शोधा...",
+    "noUsersFound": "वापरकर्ते आढळले नाहीत",
+    "noPhone": "फोन नाही",
+    "neverLogged": "कधीही नाही",
+    "stats": {
+      "totalUsers": "एकूण वापरकर्ते",
+      "superadmins": "सुपर अ‍ॅडमिन",
+      "operators": "ऑपरेटर",
+      "activeUsers": "सक्रिय वापरकर्ते"
+    },
+    "roles": {
+      "superadmin": "सुपर अ‍ॅडमिन",
+      "operator": "ऑपरेटर",
+      "vendor": "विक्रेता"
+    },
+    "status": {
+      "active": "सक्रिय",
+      "inactive": "निष्क्रिय"
+    },
+    "filters": {
+      "role": "भूमिका",
+      "status": "स्थिती"
+    },
+    "table": {
+      "user": "वापरकर्ता",
+      "contact": "संपर्क",
+      "role": "भूमिका",
+      "business": "व्यवसाय",
+      "status": "स्थिती",
+      "lastLogin": "शेवटचे लॉगिन",
+      "actions": "क्रिया"
+    },
+    "buttons": {
+      "addNewUser": "नवीन वापरकर्ता",
+      "deactivateUser": "वापरकर्ता निष्क्रिय करा",
+      "activateUser": "वापरकर्ता सक्रिय करा",
+      "deactivate": "निष्क्रिय करा",
+      "activate": "सक्रिय करा"
+    },
+    "modals": {
+      "deactivate": {
+        "title": "वापरकर्ता निष्क्रिय करा",
+        "subtitle": "निष्क्रियतेची पुष्टी करा",
+        "confirmMessage": "तुम्ही खात्री करून {{name}} ला निष्क्रिय करू इच्छिता?",
+        "warningMessage": "हा वापरकर्ता निष्क्रिय केल्यानंतर तो सिस्टममध्ये लॉगिन करू शकणार नाही."
+      },
+      "activate": {
+        "title": "वापरकर्ता सक्रिय करा",
+        "subtitle": "सक्रियतेची पुष्टी करा",
+        "confirmMessage": "तुम्ही खात्री करून {{name}} ला सक्रिय करू इच्छिता?",
+        "warningMessage": "हा वापरकर्ता सक्रिय केल्यानंतर तो पुन्हा सिस्टममध्ये लॉगिन करू शकेल."
+      }
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} वापरकर्ते"
+    },
+    "errors": {
+      "fetchFailed": "वापरकर्ते आणण्यात अयशस्वी",
+      "statusToggleFailed": "वापरकर्ता स्थिती बदलण्यात अयशस्वी",
+      "loadError": "वापरकर्ता लोड करण्यात त्रुटी",
+      "deleteFailed": "वापरकर्ता हटविण्यात अयशस्वी",
+      "notFound": "वापरकर्ता आढळला नाही"
+    },
+    "detailsTitle": "वापरकर्ता तपशील",
+    "detailsSubtitle": "संपूर्ण वापरकर्ता माहिती पहा",
+    "personalInfo": "वैयक्तिक माहिती",
+    "businessInfo": "व्यवसाय माहिती",
+    "systemInfo": "प्रणाली माहिती",
+    "createdAt": "तयार केले",
+    "updatedAt": "शेवटचे अद्यतन",
+    "fullName": "पूर्ण नाव",
+    "role": "भूमिका"
+  },
+
+  "audit": {
+    "title": "ऑडिट लॉग",
+    "subtitle": "सर्व सिस्टम क्रियाकलाप आणि वापरकर्ता क्रिया ट्रॅक करा",
+    "loading": "ऑडिट लॉग लोड होत आहेत...",
+    "searchPlaceholder": "वापरकर्ता, क्रिया, संस्थेद्वारे शोधा...",
+    "noLogsFound": "ऑडिट लॉग आढळले नाहीत",
+    "unknown": "अज्ञात",
+    "stats": {
+      "totalLogs": "एकूण लॉग",
+      "pages": "पृष्ठे",
+      "currentPage": "सध्याचे पृष्ठ",
+      "perPage": "प्रति पृष्ठ"
+    },
+    "filters": {
+      "startDate": "प्रारंभ दिनांक",
+      "endDate": "शेवटची तारीख",
+      "actionType": "क्रिया प्रकार",
+      "entityType": "संस्था प्रकार"
+    },
+    "table": {
+      "time": "वेळ",
+      "user": "वापरकर्ता",
+      "action": "क्रिया",
+      "entity": "संस्था",
+      "ipAddress": "IP पत्ता",
+      "device": "डिव्हाइस",
+      "actions": "क्रिया"
+    },
+    "timeAgo": {
+      "justNow": "आत्ताच",
+      "minutesAgo": "{{count}} मिनिटांपूर्वी",
+      "hoursAgo": "{{count}} तासांपूर्वी",
+      "daysAgo": "{{count}} दिवसांपूर्वी"
+    },
+    "actions": {
+      "createPurchase": "खरेदी तयार करा",
+      "updatePurchase": "खरेदी अद्यतनित करा",
+      "deletePurchase": "खरेदी हटवा",
+      "createSale": "विक्री तयार करा",
+      "updateSale": "विक्री अद्यतनित करा",
+      "deleteSale": "विक्री हटवा",
+      "createExpense": "खर्च तयार करा",
+      "updateExpense": "खर्च अद्यतनित करा",
+      "deleteExpense": "खर्च हटवा",
+      "createPayment": "पेमेंट तयार करा",
+      "updatePayment": "पेमेंट अद्यतनित करा",
+      "deletePayment": "पेमेंट हटवा",
+      "createFarmer": "शेतकरी तयार करा",
+      "updateFarmer": "शेतकरी अद्यतनित करा",
+      "deleteFarmer": "शेतकरी हटवा",
+      "adjustStock": "स्टॉक समायोजित करा",
+      "transferStock": "स्टॉक स्थानांतरित करा",
+      "setBudget": "बजेट सेट करा",
+      "login": "लॉगिन",
+      "logout": "लॉगआउट",
+      "create": "तयार करा",
+      "update": "अद्यतनित करा",
+      "delete": "हटवा"
+    },
+    "entities": {
+      "purchase": "खरेदी",
+      "sale": "विक्री",
+      "expense": "खर्च",
+      "payment": "पेमेंट",
+      "farmer": "शेतकरी",
+      "inventory": "स्टॉक",
+      "budgetAlert": "बजेट सूचना",
+      "user": "वापरकर्ता"
+    },
+    "modal": {
+      "title": "ऑडिट लॉग तपशील",
+      "userInfo": "वापरकर्ता माहिती",
+      "actionDetails": "क्रिया तपशील",
+      "technicalDetails": "तांत्रिक तपशील",
+      "name": "नाव",
+      "email": "ईमेल",
+      "role": "भूमिका",
+      "action": "क्रिया",
+      "entityType": "संस्था प्रकार",
+      "entityId": "संस्था आयडी",
+      "ipAddress": "IP पत्ता",
+      "deviceInfo": "डिव्हाइस माहिती",
+      "notes": "नोंदी",
+      "changes": "बदल",
+      "beforeValue": "आधीचे मूल्य",
+      "afterValue": "नंतरचे मूल्य",
+      "createdAt": "तयार केले",
+      "updatedAt": "अद्यतनित केले",
+      "systemInfo": "प्रणाली माहिती"
+    },
+    "pagination": {
+      "showing": "{{start}} ते {{end}} दाखवत आहे, एकूण {{total}} लॉग"
+    },
+    "errors": {
+      "fetchFailed": "ऑडिट लॉग आणण्यात अयशस्वी"
+    }
   }
 }

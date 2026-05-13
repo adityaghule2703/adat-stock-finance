@@ -1,12 +1,104 @@
 // src/pages/inventory/EditWarehouse.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, X, Warehouse, Building, MapPin, User, Phone, Mail, Package, AlertCircle, CheckCircle, Loader, FileText } from 'lucide-react';
+import {
+  Button,
+  TextField,
+  Stack,
+  Typography,
+  Box,
+  Autocomplete,
+  IconButton,
+  Collapse,
+  Alert,
+  Paper,
+  InputAdornment,
+  CircularProgress,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Tooltip
+} from '@mui/material';
+import { 
+  Error as ErrorIcon, 
+  Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+  Warehouse as WarehouseIcon,
+  LocationOn as LocationIcon,
+  Person as PersonIcon,
+  Inventory as PackageIcon,
+  Description as FileTextIcon,
+  Check as CheckIcon,
+  ChevronLeft,
+  ChevronRight,
+  Lock as LockIcon
+} from '@mui/icons-material';
+import axios from 'axios';
 import BASE_URL from '../../config/Config';
+
+// Color constants
+const COLORS = {
+  primary: '#1B3A1F',
+  primaryLight: '#E8F5E9',
+  primaryDark: '#0E2A12',
+  text: {
+    primary: '#1B5E20',
+    secondary: '#4B5568',
+    tertiary: '#94A3B8',
+    light: '#FFFFFF',
+    lightMuted: 'rgba(255, 255, 255, 0.9)'
+  },
+  background: {
+    white: '#FFFFFF',
+    light: '#F8FFFC',
+    hover: '#F0FDF9',
+    tableHeader: '#1B3A1F'
+  },
+  border: '#E3E8EF'
+};
+
+// Floating Error Alert Component
+const FloatingErrorAlert = ({ error, onClose }) => {
+  if (!error) return null;
+  
+  return (
+    <Collapse in={!!error}>
+      <Alert
+        severity="error"
+        variant="filled"
+        onClose={onClose}
+        icon={<ErrorIcon sx={{ fontSize: '1rem' }} />}
+        sx={{
+          mb: 2,
+          borderRadius: 1.5,
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          '& .MuiAlert-icon': {
+            fontSize: '1rem',
+            alignItems: 'center'
+          },
+          '& .MuiAlert-message': {
+            py: 0.5,
+            fontSize: '0.75rem'
+          },
+          '& .MuiAlert-action': {
+            py: 0,
+            alignItems: 'center'
+          }
+        }}
+      >
+        {error}
+      </Alert>
+    </Collapse>
+  );
+};
 
 const EditWarehouse = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -36,12 +128,20 @@ const EditWarehouse = () => {
     notes: ''
   });
 
+  const unitOptions = [
+    { value: 'KG', label: 'KG (Kilograms)' },
+    { value: 'TON', label: 'TON (Tons)' },
+    { value: 'QUINTAL', label: 'QUINTAL (100 KG)' }
+  ];
+
+  const steps = ['Basic Information', 'Location & Manager', 'Capacity & Notes'];
+
   const getToken = () => localStorage.getItem('token');
 
   const fetchWarehouse = async () => {
     try {
       const token = getToken();
-      const response = await fetch(`${BASE_URL}/warehouse/${id}`, {
+      const response = await axios.get(`${BASE_URL}/warehouse/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -51,9 +151,8 @@ const EditWarehouse = () => {
         return;
       }
 
-      const data = await response.json();
-      if (data.success) {
-        const warehouse = data.data.warehouse;
+      if (response.data.success) {
+        const warehouse = response.data.data.warehouse;
         setFormData({
           name: warehouse.name || '',
           code: warehouse.code || '',
@@ -77,10 +176,11 @@ const EditWarehouse = () => {
           notes: warehouse.notes || ''
         });
       } else {
-        setError(data.message || 'Failed to fetch warehouse');
+        setError(response.data.message || 'Failed to fetch warehouse');
       }
     } catch (error) {
-      setError('Network error. Please check your connection.');
+      console.error('Error fetching warehouse:', error);
+      setError(error.response?.data?.message || 'Network error. Please check your connection.');
     } finally {
       setFetching(false);
     }
@@ -104,48 +204,143 @@ const EditWarehouse = () => {
     if (fieldErrors[name]) setFieldErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const validateForm = () => {
+  const handleUnitChange = (event, newValue) => {
+    setFormData(prev => ({
+      ...prev,
+      capacity: { ...prev.capacity, unit: newValue?.value || 'KG' }
+    }));
+  };
+
+  const validateStep = (step) => {
     const errors = {};
-    if (!formData.name) errors.name = 'Warehouse name is required';
-    if (!formData.code) errors.code = 'Warehouse code is required';
-    if (!formData.location.city) errors['location.city'] = 'City is required';
-    if (!formData.location.state) errors['location.state'] = 'State is required';
-    if (!formData.manager.name) errors['manager.name'] = 'Manager name is required';
-    if (!formData.manager.phone) errors['manager.phone'] = 'Manager phone is required';
-    if (!formData.capacity.total) errors['capacity.total'] = 'Total capacity is required';
+    let isValid = true;
+
+    if (step === 0) {
+      // Name and code are now read-only, so no validation needed for them
+      // But we still need to ensure they exist (they should from API)
+      if (!formData.name.trim()) {
+        errors.name = 'Warehouse name is required';
+        isValid = false;
+      }
+      if (!formData.code.trim()) {
+        errors.code = 'Warehouse code is required';
+        isValid = false;
+      }
+    } else if (step === 1) {
+      if (!formData.location.city.trim()) {
+        errors['location.city'] = 'City is required';
+        isValid = false;
+      }
+      if (!formData.location.state.trim()) {
+        errors['location.state'] = 'State is required';
+        isValid = false;
+      }
+      if (!formData.manager.name.trim()) {
+        errors['manager.name'] = 'Manager name is required';
+        isValid = false;
+      }
+      if (!formData.manager.phone.trim()) {
+        errors['manager.phone'] = 'Manager phone is required';
+        isValid = false;
+      } else if (!/^[0-9]{10}$/.test(formData.manager.phone)) {
+        errors['manager.phone'] = 'Enter valid 10-digit mobile number';
+        isValid = false;
+      }
+    } else if (step === 2) {
+      if (!formData.capacity.total) {
+        errors['capacity.total'] = 'Total capacity is required';
+        isValid = false;
+      }
+    }
+
+    setFieldErrors(errors);
+    if (!isValid) {
+      setError('Please fill all required fields');
+      setTimeout(() => setError(''), 3000);
+    }
+    return isValid;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+      setError('');
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(currentStep - 1);
+    setError('');
+  };
+
+  const validateAllFields = () => {
+    const errors = {};
+    let isValid = true;
+
+    // Name and code validation (though read-only, we still check they exist)
+    if (!formData.name) {
+      errors.name = 'Warehouse name is required';
+      isValid = false;
+    }
+    if (!formData.code) {
+      errors.code = 'Warehouse code is required';
+      isValid = false;
+    }
+    if (!formData.location.city) {
+      errors['location.city'] = 'City is required';
+      isValid = false;
+    }
+    if (!formData.location.state) {
+      errors['location.state'] = 'State is required';
+      isValid = false;
+    }
+    if (!formData.manager.name) {
+      errors['manager.name'] = 'Manager name is required';
+      isValid = false;
+    }
+    if (!formData.manager.phone) {
+      errors['manager.phone'] = 'Manager phone is required';
+      isValid = false;
+    }
+    if (!formData.capacity.total) {
+      errors['capacity.total'] = 'Total capacity is required';
+      isValid = false;
+    }
     
     setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    if (!isValid) {
+      setError('Please fill all required fields');
+      setTimeout(() => setError(''), 3000);
+    }
+    return isValid;
+  };
+
+  const showError = (message) => {
+    setError(message);
+    setTimeout(() => setError(''), 5000);
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      setError('Please fill all required fields');
-      return;
-    }
+    if (!validateAllFields()) return;
 
     setLoading(true);
     setError('');
 
     try {
       const token = getToken();
-      const response = await fetch(`${BASE_URL}/warehouse/${id}`, {
-        method: 'PUT',
+      const response = await axios.put(`${BASE_URL}/warehouse/${id}`, {
+        ...formData,
+        capacity: { 
+          ...formData.capacity, 
+          total: parseFloat(formData.capacity.total),
+          used: parseFloat(formData.capacity.used) || 0
+        }
+      }, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...formData,
-          capacity: { 
-            ...formData.capacity, 
-            total: parseFloat(formData.capacity.total),
-            used: parseFloat(formData.capacity.used) || 0
-          }
-        })
+        }
       });
-
-      const data = await response.json();
 
       if (response.status === 401) {
         localStorage.clear();
@@ -153,102 +348,579 @@ const EditWarehouse = () => {
         return;
       }
 
-      if (response.ok && data.success) {
+      if (response.data.success) {
         setSuccess(true);
         setTimeout(() => navigate('/warehouses'), 2000);
       } else {
-        setError(data.message || 'Failed to update warehouse');
+        showError(response.data.message || 'Failed to update warehouse');
       }
     } catch (error) {
-      setError('Network error. Please check your connection.');
+      console.error('Error updating warehouse:', error);
+      showError(error.response?.data?.message || 'Network error. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
-  const inputClasses = "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-all bg-white text-sm";
+  // Label component
   const Label = ({ children, required }) => (
-    <label className="block text-xs font-semibold mb-1" style={{ color: '#4B5568' }}>
-      {children} {required && <span className="text-red-500">*</span>}
-    </label>
+    <Typography sx={{ 
+      fontSize: '0.7rem', 
+      fontWeight: 600, 
+      color: COLORS.text.secondary, 
+      letterSpacing: '0.5px',
+      mb: 0.5
+    }}>
+      {children} {required && <span style={{ color: '#EF4444' }}>*</span>}
+    </Typography>
   );
 
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 1.5,
+      fontSize: '0.75rem',
+      '&:hover fieldset': { borderColor: COLORS.primary },
+      '&.Mui-focused fieldset': { borderColor: COLORS.primary, borderWidth: 1 },
+      '&.Mui-disabled': {
+        '&:hover fieldset': { borderColor: COLORS.border },
+        '& fieldset': { borderColor: COLORS.border }
+      }
+    },
+    '& .MuiInputBase-input': {
+      py: 1,
+      px: 1.5,
+      fontSize: '0.75rem',
+      color: COLORS.text.primary,
+      '&::placeholder': {
+        color: COLORS.text.tertiary,
+        fontSize: '0.75rem'
+      },
+      '&.Mui-disabled': {
+        color: '#6B7280',
+        WebkitTextFillColor: '#6B7280'
+      }
+    },
+    '& .MuiInputAdornment-root': {
+      '& .MuiTypography-root': {
+        fontSize: '0.7rem'
+      }
+    }
+  };
+
+  // Read-only input styling for name and code
+  const readOnlyInputSx = {
+    ...inputSx,
+    '& .MuiOutlinedInput-root': {
+      ...inputSx['& .MuiOutlinedInput-root'],
+      bgcolor: '#F9FAFB',
+      '&.Mui-disabled': {
+        bgcolor: '#F9FAFB'
+      }
+    }
+  };
+
+  // Get selected unit label for display
+  const selectedUnit = unitOptions.find(opt => opt.value === formData.capacity.unit) || null;
+
   if (fetching) {
-    return <div className="flex justify-center py-12"><Loader className="w-8 h-8 animate-spin text-green-700" /></div>;
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '96vh' }}>
+        <CircularProgress sx={{ color: '#2E7D32' }} />
+        <Typography sx={{ ml: 2, color: '#2E7D32' }}>Loading warehouse details...</Typography>
+      </Box>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/warehouses')} className="p-2 rounded-lg hover:bg-gray-100">
-            <ArrowLeft className="w-5 h-5 text-green-700" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-green-900">Edit Warehouse</h1>
-            <p className="text-xs text-gray-500">Update warehouse information</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => navigate('/warehouses')} className="px-4 py-2 rounded-lg border text-gray-600">Cancel</button>
-          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 rounded-lg bg-green-700 text-white flex items-center gap-2">
-            {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Update Warehouse
-          </button>
-        </div>
-      </div>
+    <Box sx={{ height: '100%', overflow: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <IconButton 
+          onClick={() => navigate('/warehouses')} 
+          sx={{ 
+            p: 1, 
+            borderRadius: 1.5,
+            '&:hover': { bgcolor: COLORS.primaryLight }
+          }}
+        >
+          <ArrowBackIcon sx={{ color: COLORS.primary }} />
+        </IconButton>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.text.primary }}>
+            Edit Warehouse
+          </Typography>
+          <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>
+            Update warehouse information
+          </Typography>
+        </Box>
+        <Box sx={{ ml: 'auto' }}>
+          {currentStep === 2 && (
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              variant="contained"
+              sx={{
+                height: 32,
+                px: 2,
+                borderRadius: 1.5,
+                bgcolor: COLORS.primary,
+                fontSize: '0.7rem',
+                fontWeight: 500,
+                textTransform: 'none',
+                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                '&:hover': {
+                  bgcolor: COLORS.primaryDark,
+                },
+                '&:disabled': {
+                  bgcolor: COLORS.border,
+                  color: COLORS.text.tertiary
+                }
+              }}
+            >
+              {loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <><SaveIcon sx={{ fontSize: '1rem', mr: 0.5 }} /> Update Warehouse</>}
+            </Button>
+          )}
+        </Box>
+      </Box>
 
-      {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3"><AlertCircle className="w-4 h-4 text-red-500" /><span className="text-sm text-red-600">{error}</span></div>}
-      {success && <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3"><CheckCircle className="w-4 h-4 text-green-500" /><span className="text-sm text-green-700">Warehouse updated successfully! Redirecting...</span></div>}
+      {/* Floating Error Alert */}
+      <Box sx={{ mb: 2 }}>
+        <FloatingErrorAlert error={error} onClose={() => setError('')} />
+      </Box>
 
-      <div className="space-y-6">
-        {/* Basic Information */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b bg-green-50"><div className="flex items-center gap-2"><Warehouse className="w-4 h-4 text-green-700" /><h2 className="font-semibold text-green-800">Basic Information</h2></div></div>
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div><Label required>Warehouse Name</Label><input type="text" name="name" value={formData.name} onChange={handleChange} className={inputClasses} /></div>
-            <div><Label required>Warehouse Code</Label><input type="text" name="code" value={formData.code} onChange={handleChange} className={inputClasses} /></div>
-            <div><Label>Status</Label><div className="flex gap-4 mt-2"><label className="flex items-center gap-2"><input type="radio" name="isActive" checked={formData.isActive === true} onChange={() => setFormData(prev => ({ ...prev, isActive: true }))} className="w-4 h-4" /> Active</label><label className="flex items-center gap-2"><input type="radio" name="isActive" checked={formData.isActive === false} onChange={() => setFormData(prev => ({ ...prev, isActive: false }))} className="w-4 h-4" /> Inactive</label></div></div>
-          </div>
-        </div>
+      {/* Success Message */}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+          Warehouse updated successfully! Redirecting...
+        </Alert>
+      )}
 
-        {/* Location Details */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b bg-green-50"><div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-green-700" /><h2 className="font-semibold text-green-800">Location Details</h2></div></div>
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-2"><Label>Address</Label><textarea name="location.address" value={formData.location.address} onChange={handleChange} rows="2" className={`${inputClasses} resize-none`} /></div>
-            <div><Label required>City</Label><input type="text" name="location.city" value={formData.location.city} onChange={handleChange} className={inputClasses} /></div>
-            <div><Label required>State</Label><input type="text" name="location.state" value={formData.location.state} onChange={handleChange} className={inputClasses} /></div>
-            <div><Label>Pincode</Label><input type="text" name="location.pincode" value={formData.location.pincode} onChange={handleChange} className={inputClasses} /></div>
-          </div>
-        </div>
+      {/* Stepper */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+        <Stack direction="row" spacing={3} alignItems="center">
+          {steps.map((step, index) => (
+            <React.Fragment key={step}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{
+                  width: 32, 
+                  height: 32, 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  fontSize: '0.875rem', 
+                  fontWeight: 600,
+                  ...(currentStep >= index 
+                    ? { background: 'linear-gradient(135deg, #2E7D32, #43A047)', color: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' } 
+                    : { bgcolor: '#E5E7EB', color: '#6B7280' })
+                }}>
+                  {currentStep > index ? <CheckIcon sx={{ fontSize: '1rem' }} /> : index + 1}
+                </Box>
+                <Box>
+                  <Typography variant="caption" sx={{ color: currentStep >= index ? '#2E7D32' : '#8D6E63', display: 'block', textAlign: 'left' }}>
+                    Step {index + 1}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: currentStep >= index ? '#1B5E20' : '#8D6E63' }}>
+                    {step}
+                  </Typography>
+                </Box>
+              </Stack>
+              {index < steps.length - 1 && (
+                <Box sx={{ width: 48, height: 2, bgcolor: currentStep > index ? '#2E7D32' : '#E5E7EB' }} />
+              )}
+            </React.Fragment>
+          ))}
+        </Stack>
+      </Box>
 
-        {/* Manager Details */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b bg-green-50"><div className="flex items-center gap-2"><User className="w-4 h-4 text-green-700" /><h2 className="font-semibold text-green-800">Manager Details</h2></div></div>
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div><Label required>Manager Name</Label><input type="text" name="manager.name" value={formData.manager.name} onChange={handleChange} className={inputClasses} /></div>
-            <div><Label required>Phone Number</Label><input type="tel" name="manager.phone" value={formData.manager.phone} onChange={handleChange} className={inputClasses} /></div>
-            <div className="md:col-span-2"><Label>Email</Label><input type="email" name="manager.email" value={formData.manager.email} onChange={handleChange} className={inputClasses} /></div>
-          </div>
-        </div>
+      {/* Step 1: Basic Information */}
+      {currentStep === 0 && (
+        <Paper sx={{ borderRadius: 2.5, overflow: 'visible', border: `1px solid ${COLORS.border}` }}>
+          <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <WarehouseIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+              <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Basic Information</Typography>
+            </Stack>
+          </Box>
+          <Box sx={{ p: 2.5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              {/* Warehouse Name - READ ONLY */}
+              <Box>
+                <Label required>WAREHOUSE NAME</Label>
+                <Tooltip title="Warehouse name cannot be changed" arrow placement="top">
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="name"
+                    value={formData.name}
+                    disabled
+                    placeholder="Enter warehouse name"
+                    error={!!fieldErrors.name}
+                    helperText={fieldErrors.name}
+                    sx={readOnlyInputSx}
+                    InputProps={{
+                      readOnly: true,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockIcon sx={{ fontSize: '0.8rem', color: '#9CA3AF' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Tooltip>
+              </Box>
 
-        {/* Capacity Details */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b bg-green-50"><div className="flex items-center gap-2"><Package className="w-4 h-4 text-green-700" /><h2 className="font-semibold text-green-800">Capacity Details</h2></div></div>
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div><Label required>Total Capacity</Label><input type="number" name="capacity.total" value={formData.capacity.total} onChange={handleChange} className={inputClasses} /></div>
-            <div><Label>Used Capacity</Label><input type="number" name="capacity.used" value={formData.capacity.used} onChange={handleChange} className={inputClasses} /></div>
-            <div><Label>Unit</Label><select name="capacity.unit" value={formData.capacity.unit} onChange={handleChange} className={inputClasses}><option value="KG">KG (Kilograms)</option><option value="TON">TON (Tons)</option><option value="QUINTAL">QUINTAL</option></select></div>
-          </div>
-        </div>
+              {/* Warehouse Code - READ ONLY */}
+              <Box>
+                <Label required>WAREHOUSE CODE</Label>
+                <Tooltip title="Warehouse code cannot be changed" arrow placement="top">
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="code"
+                    value={formData.code}
+                    disabled
+                    placeholder="e.g., WH001, CS001"
+                    error={!!fieldErrors.code}
+                    helperText={fieldErrors.code}
+                    sx={readOnlyInputSx}
+                    InputProps={{
+                      readOnly: true,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockIcon sx={{ fontSize: '0.8rem', color: '#9CA3AF' }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Tooltip>
+              </Box>
 
-        {/* Notes */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b bg-green-50"><div className="flex items-center gap-2"><FileText className="w-4 h-4 text-green-700" /><h2 className="font-semibold text-green-800">Additional Notes</h2></div></div>
-          <div className="p-5"><textarea name="notes" value={formData.notes} onChange={handleChange} rows="3" className={`${inputClasses} resize-none`} /></div>
-        </div>
-      </div>
-    </div>
+              {/* Status - spans both columns */}
+              <Box sx={{ gridColumn: 'span 2' }}>
+                <Label>STATUS</Label>
+                <RadioGroup
+                  row
+                  name="isActive"
+                  value={formData.isActive}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.value === 'true' }))}
+                >
+                  <FormControlLabel 
+                    value={true} 
+                    control={<Radio size="small" />} 
+                    label={<Typography sx={{ fontSize: '0.75rem' }}>Active</Typography>}
+                    sx={{ mr: 3 }}
+                  />
+                  <FormControlLabel 
+                    value={false} 
+                    control={<Radio size="small" />} 
+                    label={<Typography sx={{ fontSize: '0.75rem' }}>Inactive</Typography>}
+                  />
+                </RadioGroup>
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Step 2: Location & Manager Details */}
+      {currentStep === 1 && (
+        <Stack spacing={2.5}>
+          {/* Location Details */}
+          <Paper sx={{ borderRadius: 2.5, overflow: 'visible', border: `1px solid ${COLORS.border}` }}>
+            <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <LocationIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+                <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Location Details</Typography>
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                {/* Address - spans both columns */}
+                <Box sx={{ gridColumn: 'span 2' }}>
+                  <Label>ADDRESS</Label>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2}
+                    size="small"
+                    name="location.address"
+                    value={formData.location.address}
+                    onChange={handleChange}
+                    placeholder="Enter full address"
+                    sx={inputSx}
+                  />
+                </Box>
+
+                {/* City */}
+                <Box>
+                  <Label required>CITY</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="location.city"
+                    value={formData.location.city}
+                    onChange={handleChange}
+                    placeholder="Enter city"
+                    error={!!fieldErrors['location.city']}
+                    helperText={fieldErrors['location.city']}
+                    sx={inputSx}
+                  />
+                </Box>
+
+                {/* State */}
+                <Box>
+                  <Label required>STATE</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="location.state"
+                    value={formData.location.state}
+                    onChange={handleChange}
+                    placeholder="Enter state"
+                    error={!!fieldErrors['location.state']}
+                    helperText={fieldErrors['location.state']}
+                    sx={inputSx}
+                  />
+                </Box>
+
+                {/* Pincode */}
+                <Box>
+                  <Label>PINCODE</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="location.pincode"
+                    value={formData.location.pincode}
+                    onChange={handleChange}
+                    placeholder="Enter pincode"
+                    sx={inputSx}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Paper>
+
+          {/* Manager Details */}
+          <Paper sx={{ borderRadius: 2.5, overflow: 'visible', border: `1px solid ${COLORS.border}` }}>
+            <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <PersonIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+                <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Manager Details</Typography>
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                {/* Manager Name */}
+                <Box>
+                  <Label required>MANAGER NAME</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="manager.name"
+                    value={formData.manager.name}
+                    onChange={handleChange}
+                    placeholder="Enter manager name"
+                    error={!!fieldErrors['manager.name']}
+                    helperText={fieldErrors['manager.name']}
+                    sx={inputSx}
+                  />
+                </Box>
+
+                {/* Phone Number */}
+                <Box>
+                  <Label required>PHONE NUMBER</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="manager.phone"
+                    value={formData.manager.phone}
+                    onChange={handleChange}
+                    placeholder="10-digit mobile number"
+                    inputProps={{ maxLength: 10 }}
+                    error={!!fieldErrors['manager.phone']}
+                    helperText={fieldErrors['manager.phone']}
+                    sx={inputSx}
+                  />
+                </Box>
+
+                {/* Email - spans both columns */}
+                <Box sx={{ gridColumn: 'span 2' }}>
+                  <Label>EMAIL</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="manager.email"
+                    value={formData.manager.email}
+                    onChange={handleChange}
+                    placeholder="Enter email address"
+                    type="email"
+                    sx={inputSx}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Paper>
+        </Stack>
+      )}
+
+      {/* Step 3: Capacity & Notes */}
+      {currentStep === 2 && (
+        <Stack spacing={2.5}>
+          {/* Capacity Details */}
+          <Paper sx={{ borderRadius: 2.5, overflow: 'visible', border: `1px solid ${COLORS.border}` }}>
+            <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <PackageIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+                <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Capacity Details</Typography>
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                {/* Total Capacity */}
+                <Box>
+                  <Label required>TOTAL CAPACITY</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    name="capacity.total"
+                    value={formData.capacity.total}
+                    onChange={handleChange}
+                    placeholder="Enter total capacity"
+                    error={!!fieldErrors['capacity.total']}
+                    helperText={fieldErrors['capacity.total']}
+                    sx={inputSx}
+                  />
+                </Box>
+
+                {/* Unit - Using Autocomplete like farmer dropdown */}
+                <Box>
+                  <Label>UNIT</Label>
+                  <Autocomplete
+                    fullWidth
+                    options={unitOptions}
+                    value={selectedUnit}
+                    onChange={handleUnitChange}
+                    getOptionLabel={(option) => option.label}
+                    isOptionEqualToValue={(option, value) => option.value === value?.value}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        placeholder="Select unit"
+                        sx={inputSx}
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props}>
+                        <Typography sx={{ fontSize: '0.75rem' }}>{option.label}</Typography>
+                      </li>
+                    )}
+                    ListboxProps={{
+                      sx: {
+                        maxHeight: '300px',
+                        '& .MuiAutocomplete-option': {
+                          fontSize: '0.75rem',
+                          py: 1,
+                          px: 1.5
+                        }
+                      }
+                    }}
+                  />
+                </Box>
+
+                {/* Used Capacity */}
+                <Box>
+                  <Label>USED CAPACITY</Label>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    size="small"
+                    name="capacity.used"
+                    value={formData.capacity.used}
+                    onChange={handleChange}
+                    placeholder="Currently used capacity"
+                    sx={inputSx}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Paper>
+
+          {/* Additional Notes */}
+          <Paper sx={{ borderRadius: 2.5, overflow: 'visible', border: `1px solid ${COLORS.border}` }}>
+            <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <FileTextIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+                <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Additional Notes</Typography>
+              </Stack>
+            </Box>
+            <Box sx={{ p: 2.5 }}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                size="small"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                placeholder="Enter any additional notes about this warehouse..."
+                sx={inputSx}
+              />
+            </Box>
+          </Paper>
+        </Stack>
+      )}
+
+      {/* Navigation Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, pt: 3, pb: 2, mt: 2 }}>
+        {currentStep > 0 && (
+          <Button
+            onClick={handlePrevious}
+            sx={{
+              height: 32,
+              px: 2,
+              borderRadius: 1.5,
+              border: `1px solid ${COLORS.border}`,
+              color: COLORS.text.secondary,
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'none',
+              '&:hover': {
+                borderColor: COLORS.primary,
+                bgcolor: `${COLORS.primary}10`
+              }
+            }}
+          >
+            <ChevronLeft sx={{ fontSize: '1rem', mr: 0.5 }} /> Previous
+          </Button>
+        )}
+        {currentStep < 2 && (
+          <Button
+            onClick={handleNext}
+            variant="contained"
+            sx={{
+              ml: 'auto',
+              height: 32,
+              px: 2,
+              borderRadius: 1.5,
+              bgcolor: COLORS.primary,
+              fontSize: '0.7rem',
+              fontWeight: 500,
+              textTransform: 'none',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              '&:hover': {
+                bgcolor: COLORS.primaryDark,
+              }
+            }}
+          >
+            Next <ChevronRight sx={{ fontSize: '1rem', ml: 0.5 }} />
+          </Button>
+        )}
+        {currentStep === 2 && <Box />}
+      </Box>
+    </Box>
   );
 };
 

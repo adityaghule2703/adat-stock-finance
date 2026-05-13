@@ -1,11 +1,96 @@
 // src/pages/inventory/AdjustStock.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Button,
+  TextField,
+  Stack,
+  Typography,
+  Box,
+  FormControl,
+  Select,
+  MenuItem,
+  Autocomplete,
+  CircularProgress,
+  IconButton,
+  Collapse,
+  Alert,
+  Paper,
+  InputAdornment,
+  Grid
+} from '@mui/material';
 import { 
-  ArrowLeft, Save, X, TrendingUp, TrendingDown,
-  AlertCircle, CheckCircle, Loader, Package, Building
-} from 'lucide-react';
+  Add as AddIcon, 
+  Error as ErrorIcon, 
+  Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+  TrendingUp,
+  TrendingDown,
+  Inventory as PackageIcon,
+  Warehouse as BuildingIcon,
+  Assignment as AssignmentIcon
+} from '@mui/icons-material';
+import axios from 'axios';
 import BASE_URL from '../../config/Config';
+
+// Color constants
+const COLORS = {
+  primary: '#1B3A1F',
+  primaryLight: '#E8F5E9',
+  primaryDark: '#0E2A12',
+  text: {
+    primary: '#1B5E20',
+    secondary: '#4B5568',
+    tertiary: '#94A3B8',
+    light: '#FFFFFF',
+    lightMuted: 'rgba(255, 255, 255, 0.9)'
+  },
+  background: {
+    white: '#FFFFFF',
+    light: '#F8FFFC',
+    hover: '#F0FDF9',
+    tableHeader: '#1B3A1F'
+  },
+  border: '#E3E8EF'
+};
+
+// Floating Error Alert Component
+const FloatingErrorAlert = ({ error, onClose }) => {
+  if (!error) return null;
+  
+  return (
+    <Collapse in={!!error}>
+      <Alert
+        severity="error"
+        variant="filled"
+        onClose={onClose}
+        icon={<ErrorIcon sx={{ fontSize: '1rem' }} />}
+        sx={{
+          mb: 2,
+          borderRadius: 1.5,
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          '& .MuiAlert-icon': {
+            fontSize: '1rem',
+            alignItems: 'center'
+          },
+          '& .MuiAlert-message': {
+            py: 0.5,
+            fontSize: '0.75rem'
+          },
+          '& .MuiAlert-action': {
+            py: 0,
+            alignItems: 'center'
+          }
+        }}
+      >
+        {error}
+      </Alert>
+    </Collapse>
+  );
+};
 
 const AdjustStock = () => {
   const navigate = useNavigate();
@@ -18,9 +103,11 @@ const AdjustStock = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
-  const [products, setProducts] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   
   const [formData, setFormData] = useState({
     productName: preSelectedProduct || '',
@@ -32,74 +119,81 @@ const AdjustStock = () => {
 
   const getToken = () => localStorage.getItem('token');
 
-  // Fetch inventory items to get product list
-  const fetchInventory = async () => {
-    try {
-      const token = getToken();
-      const response = await fetch(`${BASE_URL}/inventory`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setProducts(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching inventory:', error);
-      setError('Failed to load inventory data');
-    }
-  };
-
-  // Fetch warehouses from warehouse API
-  const fetchWarehouses = async () => {
-    try {
-      const token = getToken();
-      const response = await fetch(`${BASE_URL}/warehouse`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        // Extract warehouse names from the data
-        const warehouseNames = data.data.map(warehouse => warehouse.name);
-        setWarehouses(warehouseNames);
-      } else {
-        // Fallback: try to get from inventory if warehouse API fails
-        const token2 = getToken();
-        const invResponse = await fetch(`${BASE_URL}/inventory`, {
-          headers: { 'Authorization': `Bearer ${token2}` }
-        });
-        const invData = await invResponse.json();
-        if (invData.success) {
-          const uniqueWarehouses = [...new Set(invData.data.map(item => item.warehouse))];
-          setWarehouses(uniqueWarehouses);
+ // Fetch warehouses with their products from API
+const fetchWarehouses = async () => {
+  try {
+    const token = getToken();
+    const response = await axios.get(`${BASE_URL}/warehouse`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.data.success) {
+      setWarehouses(response.data.data);
+      
+      // If pre-selected warehouse exists, auto-select it
+      if (preSelectedWarehouse) {
+        const warehouse = response.data.data.find(w => w.name === preSelectedWarehouse);
+        if (warehouse) {
+          setSelectedWarehouse(warehouse);
+          setFormData(prev => ({ ...prev, warehouse: warehouse.name }));
+          // Get products for pre-selected warehouse
+          const products = warehouse.products || [];
+          setFilteredProducts(products);
+          
+          // If pre-selected product exists, auto-select it
+          if (preSelectedProduct) {
+            const product = products.find(p => p.productName === preSelectedProduct);
+            if (product) {
+              setSelectedProduct(product);
+              setFormData(prev => ({ ...prev, productName: product.productName }));
+            }
+          }
         }
       }
-    } catch (error) {
-      console.error('Error fetching warehouses:', error);
-      // Fallback: get warehouses from inventory
-      try {
-        const token2 = getToken();
-        const invResponse = await fetch(`${BASE_URL}/inventory`, {
-          headers: { 'Authorization': `Bearer ${token2}` }
-        });
-        const invData = await invResponse.json();
-        if (invData.success) {
-          const uniqueWarehouses = [...new Set(invData.data.map(item => item.warehouse))];
-          setWarehouses(uniqueWarehouses);
-        }
-      } catch (err) {
-        console.error('Fallback also failed:', err);
-      }
+    } else {
+      // FIX: Check for both 'message' and 'error' fields
+      const errorMessage = response.data.message || response.data.error || 'Failed to load warehouse data';
+      setError(errorMessage);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching warehouses:', error);
+    // FIX: Better error extraction from catch block
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Failed to load warehouse data';
+    setError(errorMessage);
+  } finally {
+    setLoadingData(false);
+  }
+};
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoadingData(true);
-      await Promise.all([fetchInventory(), fetchWarehouses()]);
-      setLoadingData(false);
-    };
-    loadData();
+    fetchWarehouses();
   }, []);
+
+  // Handle warehouse selection
+  const handleWarehouseChange = (event, newValue) => {
+    setSelectedWarehouse(newValue);
+    setSelectedProduct(null); // Reset product when warehouse changes
+    setFilteredProducts(newValue?.products || []);
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      warehouse: newValue?.name || '',
+      productName: '' // Clear product name when warehouse changes
+    }));
+    
+    if (fieldErrors.warehouse) setFieldErrors(prev => ({ ...prev, warehouse: '' }));
+    if (fieldErrors.productName) setFieldErrors(prev => ({ ...prev, productName: '' }));
+  };
+
+  // Handle product selection
+  const handleProductChange = (event, newValue) => {
+    setSelectedProduct(newValue);
+    setFormData(prev => ({ ...prev, productName: newValue?.productName || '' }));
+    if (fieldErrors.productName) setFieldErrors(prev => ({ ...prev, productName: '' }));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -111,12 +205,12 @@ const AdjustStock = () => {
     const errors = {};
     let isValid = true;
 
-    if (!formData.productName) {
-      errors.productName = 'Please select a product';
-      isValid = false;
-    }
     if (!formData.warehouse) {
       errors.warehouse = 'Please select a warehouse';
+      isValid = false;
+    }
+    if (!formData.productName) {
+      errors.productName = 'Please select a product';
       isValid = false;
     }
     if (!formData.adjustment || parseFloat(formData.adjustment) <= 0) {
@@ -133,244 +227,428 @@ const AdjustStock = () => {
     return isValid;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+  const showError = (message) => {
+    setError(message);
+    setTimeout(() => setError(''), 5000);
+  };
 
-    setLoading(true);
-    setError('');
+ const handleSubmit = async () => {
+  if (!validateForm()) return;
 
-    try {
-      const token = getToken();
-      const adjustmentValue = formData.adjustmentType === 'add' 
-        ? parseFloat(formData.adjustment) 
-        : -parseFloat(formData.adjustment);
+  setLoading(true);
+  setError('');
 
-      const adjustData = {
-        productName: formData.productName,
-        warehouse: formData.warehouse,
-        adjustment: adjustmentValue,
-        reason: formData.reason
-      };
+  try {
+    const token = getToken();
+    const adjustmentValue = formData.adjustmentType === 'add' 
+      ? parseFloat(formData.adjustment) 
+      : -parseFloat(formData.adjustment);
 
-      const response = await fetch(`${BASE_URL}/inventory/adjust`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(adjustData)
-      });
+    const adjustData = {
+      productName: formData.productName,
+      warehouse: formData.warehouse,
+      adjustment: adjustmentValue,
+      reason: formData.reason
+    };
 
-      const data = await response.json();
-
-      if (response.status === 401) {
-        localStorage.clear();
-        navigate('/login');
-        return;
+    const response = await axios.post(`${BASE_URL}/inventory/adjust`, adjustData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
+    });
 
-      if (response.ok && data.success) {
-        setSuccess(true);
-        setTimeout(() => navigate('/inventory'), 2000);
-      } else {
-        setError(data.message || 'Failed to adjust stock');
+    if (response.status === 401) {
+      localStorage.clear();
+      navigate('/login');
+      return;
+    }
+
+    if (response.data.success) {
+      setSuccess(true);
+      setTimeout(() => navigate('/inventory'), 2000);
+    } else {
+      // FIX: Check for both 'message' and 'error' fields
+      const errorMessage = response.data.message || response.data.error || 'Failed to adjust stock';
+      showError(errorMessage);
+    }
+  } catch (error) {
+    console.error('Error adjusting stock:', error);
+    // FIX: Better error extraction from catch block
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Network error. Please check your connection.';
+    showError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency', currency: 'INR', minimumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  // Label component
+  const Label = ({ children, required }) => (
+    <Typography sx={{ 
+      fontSize: '0.7rem', 
+      fontWeight: 600, 
+      color: COLORS.text.secondary, 
+      letterSpacing: '0.5px',
+      mb: 0.5
+    }}>
+      {children} {required && <span style={{ color: '#EF4444' }}>*</span>}
+    </Typography>
+  );
+
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 1.5,
+      fontSize: '0.75rem',
+      '&:hover fieldset': { borderColor: COLORS.primary },
+      '&.Mui-focused fieldset': { borderColor: COLORS.primary, borderWidth: 1 }
+    },
+    '& .MuiInputBase-input': {
+      py: 1,
+      px: 1.5,
+      fontSize: '0.75rem',
+      color: COLORS.text.primary,
+      '&::placeholder': {
+        color: COLORS.text.tertiary,
+        fontSize: '0.75rem'
       }
-    } catch (error) {
-      console.error('Error adjusting stock:', error);
-      setError('Network error. Please check your connection.');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const inputClasses = "w-full px-3 py-2 border rounded-lg focus:outline-none border-[#E2E8F0] transition-all bg-white text-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
-
-  const Label = ({ children, required }) => (
-    <label className="block text-xs font-semibold mb-1" style={{ color: '#4B5568' }}>
-      {children} {required && <span className="text-red-500">*</span>}
-    </label>
-  );
-
   if (loadingData) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <Loader className="w-8 h-8 animate-spin text-green-700" />
-        <span className="ml-2 text-green-700">Loading data...</span>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '96vh' }}>
+        <CircularProgress sx={{ color: '#2E7D32' }} />
+        <Typography sx={{ ml: 2, color: '#2E7D32' }}>Loading data...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/inventory')} className="p-2 rounded-lg hover:bg-gray-100">
-            <ArrowLeft className="w-5 h-5" style={{ color: '#2E7D32' }} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: '#1B5E20' }}>Adjust Stock</h1>
-            <p className="text-xs mt-0.5" style={{ color: '#8D6E63' }}>Increase or decrease inventory stock</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => navigate('/inventory')} className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border hover:bg-gray-50">
-            <X className="w-4 h-4" /> Cancel
-          </button>
-          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 hover:scale-105 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #2E7D32, #43A047)' }}>
-            {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+    <Box sx={{ height: '100%', overflow: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <IconButton 
+          onClick={() => navigate('/inventory')} 
+          sx={{ 
+            p: 1, 
+            borderRadius: 1.5,
+            '&:hover': { bgcolor: COLORS.primaryLight }
+          }}
+        >
+          <ArrowBackIcon sx={{ color: COLORS.primary }} />
+        </IconButton>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.text.primary }}>
             Adjust Stock
-          </button>
-        </div>
-      </div>
+          </Typography>
+          <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>
+            Increase or decrease inventory stock
+          </Typography>
+        </Box>
+      </Box>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 text-red-500" />
-          <span className="text-xs text-red-600 flex-1">{error}</span>
-          <button onClick={() => setError('')}><X className="w-3 h-3 text-red-500" /></button>
-        </div>
-      )}
+      {/* Floating Error Alert */}
+      <Box sx={{ mb: 2 }}>
+        <FloatingErrorAlert error={error} onClose={() => setError('')} />
+      </Box>
 
+      {/* Success Message */}
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
-          <CheckCircle className="w-4 h-4 text-green-500" />
-          <span className="text-sm text-green-700">Stock adjusted successfully! Redirecting...</span>
-        </div>
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+          Stock adjusted successfully! Redirecting...
+        </Alert>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b" style={{ background: '#F1F8E9', borderColor: '#C8E6C9' }}>
-          <div className="flex items-center gap-2">
-            <Package className="w-4 h-4" style={{ color: '#2E7D32' }} />
-            <h2 className="text-base font-semibold" style={{ color: '#1B5E20' }}>Stock Adjustment Details</h2>
-          </div>
-        </div>
-        <div className="p-5">
-          <div className="space-y-5">
-            {/* Product Selection */}
-            <div>
-              <Label required>PRODUCT NAME</Label>
-              <div className="relative">
-                <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  name="productName"
-                  value={formData.productName}
-                  onChange={handleChange}
-                  className={`${inputClasses} pl-10 ${fieldErrors.productName ? 'border-red-500' : ''}`}
-                  disabled={!!preSelectedProduct}
-                >
-                  <option value="">Select a product</option>
-                  {products.map(product => (
-                    <option key={product._id} value={product.productName}>
-                      {product.productName} (Current: {product.currentStock} {product.unit})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {fieldErrors.productName && <p className="text-xs text-red-500 mt-1">{fieldErrors.productName}</p>}
-            </div>
-
-            {/* Warehouse Selection - Now from warehouse API */}
-            <div>
+      {/* Form Content */}
+      <Paper sx={{ borderRadius: 2.5, overflow: 'hidden', border: `1px solid ${COLORS.border}` }}>
+        <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <PackageIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+            <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Stock Adjustment Details</Typography>
+          </Stack>
+        </Box>
+        <Box sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            {/* WAREHOUSE SELECTION - First column (moved to first position) */}
+            <Box>
               <Label required>WAREHOUSE</Label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  name="warehouse"
-                  value={formData.warehouse}
-                  onChange={handleChange}
-                  className={`${inputClasses} pl-10 ${fieldErrors.warehouse ? 'border-red-500' : ''}`}
-                  disabled={!!preSelectedWarehouse}
-                >
-                  <option value="">Select a warehouse</option>
-                  {warehouses.map(warehouse => (
-                    <option key={warehouse} value={warehouse}>{warehouse}</option>
-                  ))}
-                </select>
-              </div>
-              {fieldErrors.warehouse && <p className="text-xs text-red-500 mt-1">{fieldErrors.warehouse}</p>}
+              <Autocomplete
+                fullWidth
+                options={warehouses}
+                loading={loadingData}
+                value={selectedWarehouse}
+                onChange={handleWarehouseChange}
+                disabled={!!preSelectedWarehouse}
+                getOptionLabel={(option) => `${option.name} (${option.isActive ? 'Active' : 'Inactive'})`}
+                isOptionEqualToValue={(option, value) => option._id === value?._id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    placeholder="Select a warehouse"
+                    error={!!fieldErrors.warehouse}
+                    helperText={fieldErrors.warehouse}
+                    sx={inputSx}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>
+                          {option.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.7rem', color: COLORS.text.tertiary }}>
+                          Code: {option.code} | Products: {option.products?.length || 0}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>
+                          Location
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.7rem', color: '#2E7D32' }}>
+                          {option.location?.city || 'N/A'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </li>
+                )}
+                ListboxProps={{
+                  sx: {
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '& .MuiAutocomplete-option': {
+                      fontSize: '0.75rem',
+                      py: 1,
+                      px: 1.5
+                    }
+                  }
+                }}
+              />
               {warehouses.length === 0 && !loadingData && (
-                <p className="text-xs text-orange-500 mt-1">No warehouses found. Please add a warehouse first.</p>
+                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#FF6F00', fontSize: '0.65rem' }}>
+                  No warehouses found. Please add a warehouse first.
+                </Typography>
               )}
-            </div>
+            </Box>
 
-            {/* Adjustment Type */}
-            <div>
+            {/* PRODUCT SELECTION - Second column (only shows products from selected warehouse) */}
+            <Box>
+              <Label required>PRODUCT NAME</Label>
+              <Autocomplete
+                fullWidth
+                options={filteredProducts}
+                loading={loadingData}
+                value={selectedProduct}
+                onChange={handleProductChange}
+                disabled={!selectedWarehouse || !!preSelectedProduct}
+                getOptionLabel={(option) => `${option.productName} (Current: ${option.currentStock} ${option.unit})`}
+                isOptionEqualToValue={(option, value) => option.productName === value?.productName}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    placeholder={selectedWarehouse ? "Search and select a product" : "Please select a warehouse first"}
+                    error={!!fieldErrors.productName}
+                    helperText={fieldErrors.productName}
+                    sx={inputSx}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>
+                          {option.productName}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.7rem', color: COLORS.text.tertiary }}>
+                          Unit: {option.unit}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>
+                          Current Stock
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: '#2E7D32' }}>
+                          {option.currentStock} {option.unit}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </li>
+                )}
+                ListboxProps={{
+                  sx: {
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '& .MuiAutocomplete-option': {
+                      fontSize: '0.75rem',
+                      py: 1,
+                      px: 1.5
+                    }
+                  }
+                }}
+              />
+              {selectedWarehouse && filteredProducts.length === 0 && (
+                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#FF6F00', fontSize: '0.65rem' }}>
+                  No products found in this warehouse.
+                </Typography>
+              )}
+            </Box>
+
+            {/* ADJUSTMENT TYPE - spans both columns */}
+            <Box sx={{ gridColumn: 'span 2' }}>
               <Label required>ADJUSTMENT TYPE</Label>
-              <div className="flex gap-3 mt-1">
-                <button
-                  type="button"
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                <Button
+                  variant={formData.adjustmentType === 'add' ? 'contained' : 'outlined'}
                   onClick={() => setFormData(prev => ({ ...prev, adjustmentType: 'add' }))}
-                  className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-2 transition-all ${
-                    formData.adjustmentType === 'add' ? 'text-white shadow-md' : 'hover:bg-gray-50'
-                  }`}
-                  style={{
-                    borderColor: '#C8E6C9',
-                    background: formData.adjustmentType === 'add' ? '#2E7D32' : 'white',
-                    color: formData.adjustmentType === 'add' ? 'white' : '#666'
+                  sx={{
+                    py: 1,
+                    px: 1.5,
+                    borderRadius: 1.5,
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    borderColor: COLORS.border,
+                    ...(formData.adjustmentType === 'add' && {
+                      bgcolor: '#2E7D32',
+                      '&:hover': { bgcolor: '#1B5E20' }
+                    })
                   }}
                 >
-                  <TrendingUp className="w-4 h-4" />
-                  <span>Add Stock (+)</span>
-                </button>
-                <button
-                  type="button"
+                  <TrendingUp sx={{ fontSize: '1rem', mr: 0.5 }} />
+                  Add Stock (+)
+                </Button>
+                <Button
+                  variant={formData.adjustmentType === 'remove' ? 'contained' : 'outlined'}
                   onClick={() => setFormData(prev => ({ ...prev, adjustmentType: 'remove' }))}
-                  className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-2 transition-all ${
-                    formData.adjustmentType === 'remove' ? 'text-white shadow-md' : 'hover:bg-gray-50'
-                  }`}
-                  style={{
-                    borderColor: '#C8E6C9',
-                    background: formData.adjustmentType === 'remove' ? '#D32F2F' : 'white',
-                    color: formData.adjustmentType === 'remove' ? 'white' : '#666'
+                  sx={{
+                    py: 1,
+                    px: 1.5,
+                    borderRadius: 1.5,
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    borderColor: COLORS.border,
+                    ...(formData.adjustmentType === 'remove' && {
+                      bgcolor: '#D32F2F',
+                      '&:hover': { bgcolor: '#C62828' }
+                    })
                   }}
                 >
-                  <TrendingDown className="w-4 h-4" />
-                  <span>Remove Stock (-)</span>
-                </button>
-              </div>
-            </div>
+                  <TrendingDown sx={{ fontSize: '1rem', mr: 0.5 }} />
+                  Remove Stock (-)
+                </Button>
+              </Box>
+            </Box>
 
-            {/* Quantity */}
-            <div>
+            {/* QUANTITY - First column */}
+            <Box>
               <Label required>QUANTITY</Label>
-              <input
+              <TextField
+                fullWidth
                 type="number"
+                size="small"
                 name="adjustment"
                 value={formData.adjustment}
                 onChange={handleChange}
                 placeholder="Enter quantity"
-                className={`${inputClasses} ${fieldErrors.adjustment ? 'border-red-500' : ''}`}
+                error={!!fieldErrors.adjustment}
+                helperText={fieldErrors.adjustment}
+                sx={inputSx}
               />
-              {fieldErrors.adjustment && <p className="text-xs text-red-500 mt-1">{fieldErrors.adjustment}</p>}
-            </div>
+            </Box>
 
-            {/* Reason */}
-            <div>
+            {/* Empty space for alignment */}
+            <Box />
+
+            {/* REASON - spans both columns */}
+            <Box sx={{ gridColumn: 'span 2' }}>
               <Label required>REASON FOR ADJUSTMENT</Label>
-              <textarea
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                size="small"
                 name="reason"
                 value={formData.reason}
                 onChange={handleChange}
                 placeholder="e.g., New harvest received, Damaged goods, Expired products, etc."
-                rows="3"
-                className={`${inputClasses} resize-none ${fieldErrors.reason ? 'border-red-500' : ''}`}
+                error={!!fieldErrors.reason}
+                helperText={fieldErrors.reason}
+                sx={inputSx}
               />
-              {fieldErrors.reason && <p className="text-xs text-red-500 mt-1">{fieldErrors.reason}</p>}
-            </div>
+            </Box>
 
-            {/* Info Note */}
-            <div className="p-3 rounded-lg" style={{ background: '#FFF3E0', border: '1px solid #FFE0B2' }}>
-              <p className="text-xs text-orange-800">
-                <strong>Note:</strong> Adding stock will increase inventory. Removing stock will decrease inventory.
-                All adjustments are logged for audit purposes.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            {/* Info Note - spans both columns */}
+            <Box sx={{ gridColumn: 'span 2' }}>
+              <Box sx={{ p: 2, bgcolor: '#FFF3E0', borderRadius: 1.5, border: '1px solid #FFE0B2' }}>
+                <Typography variant="caption" sx={{ color: '#E65100', fontSize: '0.7rem' }}>
+                  <strong>Note:</strong> Adding stock will increase inventory. Removing stock will decrease inventory.
+                  All adjustments are logged for audit purposes.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Submit Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 3, pb: 2, mt: 2 }}>
+        <Button
+          onClick={() => navigate('/inventory')}
+          sx={{
+            height: 32,
+            px: 2,
+            borderRadius: 1.5,
+            border: `1px solid ${COLORS.border}`,
+            color: COLORS.text.secondary,
+            fontSize: '0.7rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            '&:hover': {
+              borderColor: COLORS.primary,
+              bgcolor: `${COLORS.primary}10`
+            }
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          variant="contained"
+          sx={{
+            height: 32,
+            px: 2,
+            borderRadius: 1.5,
+            bgcolor: COLORS.primary,
+            fontSize: '0.7rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+            '&:hover': {
+              bgcolor: COLORS.primaryDark,
+            },
+            '&:disabled': {
+              bgcolor: COLORS.border,
+              color: COLORS.text.tertiary
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : 'Adjust Stock'}
+        </Button>
+      </Box>
+    </Box>
   );
 };
 

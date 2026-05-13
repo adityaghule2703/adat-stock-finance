@@ -13,6 +13,8 @@ import Login from "./auth/Login";
 import Farmers from "./pages/farmers/Farmers";
 import AddFarmer from "./pages/farmers/AddFarmer";
 import EditFarmer from "./pages/farmers/EditFarmer";
+import ViewFarmer from "./pages/farmers/ViewFarmer";
+import FarmerLedger from "./pages/farmers/FarmerLedger";
 
 // Expenses Module
 import Expenses from "./pages/expenses/Expenses";
@@ -26,6 +28,7 @@ import ViewPurchase from "./pages/purchase/ViewPurchase";
 import PurchaseSummary from "./pages/purchase/PurchaseSummary";
 import EditPurchase from "./pages/purchase/EditPurchase";
 import UpdatePurchaseStatus from "./pages/purchase/UpdatePurchaseStatus";
+import PurchaseReceipt from "./pages/purchase/PurchaseReceipt";
 
 // Payment Module
 import Payments from "./pages/payment/Payments";
@@ -49,6 +52,29 @@ import ViewWarehouse from "./pages/inventory/ViewWarehouse";
 import Sales from "./pages/sales/Sales";
 import AddSale from "./pages/sales/AddSale";
 import ViewSale from "./pages/sales/ViewSale";  // Note: Your file is ViewSales.jsx, rename to ViewSale.jsx
+
+// Ledger Module
+import Ledger from "./pages/ledger/Ledger";
+// import OperatorExpenseLedger from "./pages/ledger/OperatorExpenseLedger";
+// import OperatorCombinedLedger from "./pages/ledger/OperatorCombinedLedger";
+
+
+// Budget Alerts Module
+import BudgetAlerts from "./pages/budgetalerts/BudgetAlerts";
+import AddBudget from "./pages/budgetalerts/AddBudget";
+import EditBudget from "./pages/budgetalerts/EditBudget";
+import ViewBudget from "./pages/budgetalerts/ViewBudget";
+import FarmerPayments from "./pages/farmers/FarmerPayments";
+import FarmerDues from "./pages/farmers/FarmerDues";
+import DueSummary from "./pages/payment/DueSummary";
+import EditExpense from "./pages/expenses/EditExpense";
+import FarmerLedgerDetail from "./pages/ledger/FarmerLedgerDetail";
+import OperatorLedgerDetail from "./pages/ledger/OperatorLedgerDetail";
+import Users from "./pages/users/Users";
+import AddUser from "./pages/users/AddUser";
+import AuditLogs from "./pages/auditlogs/AuditLogs";
+import ViewUser from "./pages/users/ViewUser";
+import ViewAuditLog from "./pages/auditlogs/ViewAuditLog";
 
 // Protected Route Component
 const PrivateRoute = ({ children }) => {
@@ -87,10 +113,16 @@ const App = () => {
           <Route path="farmers" element={<Farmers />} />
           <Route path="farmers/add" element={<AddFarmer />} />
           <Route path="farmers/edit/:id" element={<EditFarmer />} />
+          <Route path="farmers/view/:id" element={<ViewFarmer />} />
+          <Route path="farmers/ledger/:id" element={<FarmerLedger />} />
+          <Route path="farmers/payments/:id" element={<FarmerPayments />} />
+          <Route path="/farmers/dues/:id" element={<FarmerDues />} />
+
 
           {/* ========== EXPENSES MODULE ========== */}
           <Route path="expenses" element={<Expenses />} />
           <Route path="expenses/add" element={<AddExpense />} />
+          <Route path="/expenses/edit/:id" element={<EditExpense />} />
           <Route path="expenses/view/:id" element={<ViewExpense />} />
           
           {/* ========== PURCHASE MODULE ========== */}
@@ -100,12 +132,14 @@ const App = () => {
           <Route path="purchases/summary" element={<PurchaseSummary />} />
           <Route path="purchases/edit/:id" element={<EditPurchase />} />
           <Route path="purchases/update-status/:id" element={<UpdatePurchaseStatus />} />
+          <Route path="purchases/receipt/:id" element={<PurchaseReceipt />} />
 
           {/* ========== PAYMENT MODULE ========== */}
           <Route path="payments" element={<Payments />} />
           <Route path="payments/add" element={<AddPayment />} />
           <Route path="payments/view/:id" element={<ViewPayment />} />
           <Route path="payments/update-cheque/:id" element={<UpdateChequeStatus />} />
+          <Route path="/payments/due-summary" element={<DueSummary />} />
 
           {/* ========== INVENTORY MODULE ========== */}
           <Route path="inventory" element={<Inventory />} />
@@ -124,6 +158,28 @@ const App = () => {
           <Route path="sales/add" element={<AddSale />} />
           <Route path="sales/view/:id" element={<ViewSale />} />
           {/* <Route path="sales/edit/:id" element={<EditSale />} /> */}
+
+          {/* ========== LEDGER MODULE ========== */}
+          <Route path="ledger" element={<Ledger />} />
+          <Route path="/ledger/farmers/:farmerId" element={<FarmerLedgerDetail />} />
+          <Route path="/ledger/operators/:operatorId" element={<OperatorLedgerDetail />} />
+          {/* <Route path="ledger/expenses" element={<OperatorExpenseLedger />} />
+          <Route path="ledger/combined" element={<OperatorCombinedLedger />} /> */}
+
+          {/* ========== BUDGET ALETS MODULE ========== */}
+          <Route path="budget-alerts" element={<BudgetAlerts />} />
+          <Route path="budget-alerts/add" element={<AddBudget />} />
+          <Route path="budget-alerts/edit/:id" element={<EditBudget />} />
+          <Route path="budget-alerts/view/:id" element={<ViewBudget />} />
+
+
+          <Route path="users" element={<Users />} />
+          <Route path="/users/add" element={<AddUser />} />
+          <Route path="/users/view/:id" element={<ViewUser />} />
+
+
+          <Route path="audit-logs" element={<AuditLogs />} />
+          <Route path="/audit-logs/view/:id" element={<ViewAuditLog />} />
 
           {/* ========== OTHER MODULES (Todo) ========== */}
           <Route path="reports" element={<div>Reports Page</div>} />

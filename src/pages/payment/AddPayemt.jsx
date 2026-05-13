@@ -1,13 +1,95 @@
 // src/pages/payment/AddPayment.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Button,
+  TextField,
+  Stack,
+  Typography,
+  Box,
+  FormControl,
+  Select,
+  MenuItem,
+  Autocomplete,
+  CircularProgress,
+  IconButton,
+  Collapse,
+  Alert,
+  Paper,
+  InputAdornment,
+  Grid
+} from '@mui/material';
 import { 
-  CreditCard, ArrowLeft, Save, X, User, Calendar, 
-  DollarSign, Wallet, Building, Landmark, 
-  AlertCircle, CheckCircle, Truck, Banknote,
-  TrendingUp, Hash, FileText, Phone, Loader
-} from 'lucide-react';
+  Add as AddIcon, 
+  Error as ErrorIcon, 
+  Close as CloseIcon,
+  CreditCard as CreditCardIcon,
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+  Payment as PaymentIcon,
+  AccountBalance as AccountBalanceIcon,
+  Receipt as ReceiptIcon
+} from '@mui/icons-material';
+import axios from 'axios';
 import BASE_URL from '../../config/Config';
+
+// Color constants
+const COLORS = {
+  primary: '#1B3A1F',
+  primaryLight: '#E8F5E9',
+  primaryDark: '#0E2A12',
+  text: {
+    primary: '#1B5E20',
+    secondary: '#4B5568',
+    tertiary: '#94A3B8',
+    light: '#FFFFFF',
+    lightMuted: 'rgba(255, 255, 255, 0.9)'
+  },
+  background: {
+    white: '#FFFFFF',
+    light: '#F8FFFC',
+    hover: '#F0FDF9',
+    tableHeader: '#1B3A1F'
+  },
+  border: '#E3E8EF'
+};
+
+// Floating Error Alert Component
+const FloatingErrorAlert = ({ error, onClose }) => {
+  if (!error) return null;
+  
+  return (
+    <Collapse in={!!error}>
+      <Alert
+        severity="error"
+        variant="filled"
+        onClose={onClose}
+        icon={<ErrorIcon sx={{ fontSize: '1rem' }} />}
+        sx={{
+          mb: 2,
+          borderRadius: 1.5,
+          fontSize: '0.75rem',
+          fontWeight: 500,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          '& .MuiAlert-icon': {
+            fontSize: '1rem',
+            alignItems: 'center'
+          },
+          '& .MuiAlert-message': {
+            py: 0.5,
+            fontSize: '0.75rem'
+          },
+          '& .MuiAlert-action': {
+            py: 0,
+            alignItems: 'center'
+          }
+        }}
+      >
+        {error}
+      </Alert>
+    </Collapse>
+  );
+};
 
 const AddPayment = () => {
   const navigate = useNavigate();
@@ -45,92 +127,104 @@ const AddPayment = () => {
     fetchFarmers();
   }, []);
 
-  const fetchFarmers = async () => {
-    try {
-      const token = getToken();
-      const response = await fetch(`${BASE_URL}/farmers`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setFarmers(data.data);
-        if (preSelectedFarmerId) {
-          const farmer = data.data.find(f => f._id === preSelectedFarmerId);
-          if (farmer) {
-            setSelectedFarmer(farmer);
-            await fetchPurchases(farmer._id);
-          }
+ const fetchFarmers = async () => {
+  try {
+    const token = getToken();
+    const response = await axios.get(`${BASE_URL}/farmers`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.data.success) {
+      setFarmers(response.data.data);
+      if (preSelectedFarmerId) {
+        const farmer = response.data.data.find(f => f._id === preSelectedFarmerId);
+        if (farmer) {
+          setSelectedFarmer(farmer);
+          await fetchPurchases(farmer._id);
         }
       }
-    } catch (error) {
-      console.error('Error fetching farmers:', error);
-    } finally {
-      setLoadingFarmers(false);
+    } else {
+      const errorMessage = response.data.message || response.data.error || 'Failed to fetch farmers';
+      setError(errorMessage);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching farmers:', error);
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Failed to fetch farmers';
+    setError(errorMessage);
+  } finally {
+    setLoadingFarmers(false);
+  }
+};
 
-  const fetchPurchases = async (farmerId) => {
-    if (!farmerId) return;
-    
-    setLoadingPurchases(true);
-    setError('');
-    
-    try {
-      const token = getToken();
-      const response = await fetch(`${BASE_URL}/purchases?farmerId=${farmerId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+ const fetchPurchases = async (farmerId) => {
+  if (!farmerId) return;
+  
+  setLoadingPurchases(true);
+  setError('');
+  
+  try {
+    const token = getToken();
+    const response = await axios.get(`${BASE_URL}/purchases?farmerId=${farmerId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-      if (response.status === 401) {
-        localStorage.clear();
-        navigate('/login');
-        return;
-      }
+    if (response.status === 401) {
+      localStorage.clear();
+      navigate('/login');
+      return;
+    }
 
-      const data = await response.json();
+    if (response.data.success) {
+      const pendingPurchases = response.data.data.filter(purchase => 
+        purchase.amountDue > 0 && 
+        ['saved', 'partial', 'draft'].includes(purchase.status)
+      );
       
-      if (data.success) {
-        const pendingPurchases = data.data.filter(purchase => 
-  purchase.amountDue > 0 && 
-  ['saved', 'partial', 'draft'].includes(purchase.status)
-);
-        
-        setPurchases(pendingPurchases);
-        
-        if (preSelectedPurchaseId && pendingPurchases.length > 0) {
-          const purchase = pendingPurchases.find(p => p._id === preSelectedPurchaseId);
-          if (purchase) {
-            setSelectedPurchase(purchase);
-            setFormData(prev => ({ ...prev, amount: purchase.amountDue.toString() }));
-          }
+      setPurchases(pendingPurchases);
+      
+      if (preSelectedPurchaseId && pendingPurchases.length > 0) {
+        const purchase = pendingPurchases.find(p => p._id === preSelectedPurchaseId);
+        if (purchase) {
+          setSelectedPurchase(purchase);
+          setFormData(prev => ({ ...prev, amount: purchase.amountDue.toString() }));
         }
       }
-    } catch (error) {
-      console.error('Error fetching purchases:', error);
-      setError('Failed to fetch purchases');
-    } finally {
-      setLoadingPurchases(false);
+    } else {
+      const errorMessage = response.data.message || response.data.error || 'Failed to fetch purchases';
+      setError(errorMessage);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching purchases:', error);
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Failed to fetch purchases';
+    setError(errorMessage);
+  } finally {
+    setLoadingPurchases(false);
+  }
+};
 
-  const handleFarmerSelect = async (farmerId) => {
-    const farmer = farmers.find(f => f._id === farmerId);
-    setSelectedFarmer(farmer);
+  const handleFarmerChange = (event, newValue) => {
+    setSelectedFarmer(newValue);
     setFormData(prev => ({ ...prev, purchaseId: '', amount: '' }));
     setSelectedPurchase(null);
     setPurchases([]);
-    if (farmerId) await fetchPurchases(farmerId);
+    if (newValue) fetchPurchases(newValue._id);
   };
 
-  const handlePurchaseSelect = (purchaseId) => {
-    const purchase = purchases.find(p => p._id === purchaseId);
-    setSelectedPurchase(purchase);
-    if (purchase) {
+  const handlePurchaseChange = (event, newValue) => {
+    setSelectedPurchase(newValue);
+    if (newValue) {
       setFormData(prev => ({ 
         ...prev, 
-        purchaseId, 
-        amount: purchase.amountDue.toString() 
+        purchaseId: newValue._id, 
+        amount: newValue.amountDue.toString() 
       }));
+    } else {
+      setFormData(prev => ({ ...prev, purchaseId: '', amount: '' }));
     }
   };
 
@@ -162,6 +256,12 @@ const AddPayment = () => {
       isValid = false;
     }
     
+    // Add bank name validation for bank transfer mode
+    if (formData.paymentMode === 'bank' && !formData.bankName) {
+      errors.bankName = 'Bank name is required';
+      isValid = false;
+    }
+    
     if (formData.paymentMode === 'cheque') {
       if (!formData.chequeNumber) errors.chequeNumber = 'Cheque number is required';
       if (!formData.chequeDate) errors.chequeDate = 'Cheque date is required';
@@ -179,62 +279,73 @@ const AddPayment = () => {
     return isValid;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const token = getToken();
-      const paymentData = {
-        purchaseId: formData.purchaseId,
-        amount: parseFloat(formData.amount),
-        paymentMode: formData.paymentMode,
-        paymentDate: formData.paymentDate,
-        notes: formData.notes || undefined
-      };
-
-      if (formData.paymentMode === 'upi' || formData.paymentMode === 'bank') {
-        paymentData.referenceNumber = formData.referenceNumber;
-      }
-
-      if (formData.paymentMode === 'cheque') {
-        paymentData.chequeNumber = formData.chequeNumber;
-        paymentData.chequeDate = formData.chequeDate;
-        paymentData.bankName = formData.bankName;
-      }
-
-      const response = await fetch(`${BASE_URL}/payments`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(paymentData)
-      });
-
-      const data = await response.json();
-
-      if (response.status === 401) {
-        localStorage.clear();
-        navigate('/login');
-        return;
-      }
-
-      if (response.ok && data.success) {
-        setSuccess(true);
-        setTimeout(() => navigate('/payments'), 2000);
-      } else {
-        setError(data.message || 'Failed to record payment');
-      }
-    } catch (error) {
-      console.error('Error recording payment:', error);
-      setError('Network error. Please check your connection.');
-    } finally {
-      setLoading(false);
-    }
+  const showError = (message) => {
+    setError(message);
+    setTimeout(() => setError(''), 5000);
   };
+
+ const handleSubmit = async () => {
+  if (!validateForm()) return;
+
+  setLoading(true);
+  setError('');
+
+  try {
+    const token = getToken();
+    const paymentData = {
+      purchaseId: formData.purchaseId,
+      amount: parseFloat(formData.amount),
+      paymentMode: formData.paymentMode,
+      paymentDate: formData.paymentDate,
+      notes: formData.notes || undefined
+    };
+
+    if (formData.paymentMode === 'upi' || formData.paymentMode === 'bank') {
+      paymentData.referenceNumber = formData.referenceNumber;
+    }
+    
+    // Add bank name for bank transfer mode
+    if (formData.paymentMode === 'bank' && formData.bankName) {
+      paymentData.bankName = formData.bankName;
+    }
+
+    if (formData.paymentMode === 'cheque') {
+      paymentData.chequeNumber = formData.chequeNumber;
+      paymentData.chequeDate = formData.chequeDate;
+      paymentData.bankName = formData.bankName;
+    }
+
+    const response = await axios.post(`${BASE_URL}/payments`, paymentData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      localStorage.clear();
+      navigate('/login');
+      return;
+    }
+
+    if (response.data.success) {
+      setSuccess(true);
+      setTimeout(() => navigate('/payments'), 2000);
+    } else {
+      const errorMessage = response.data.message || response.data.error || 'Failed to record payment';
+      showError(errorMessage);
+    }
+  } catch (error) {
+    console.error('Error recording payment:', error);
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.message || 
+                        'Network error. Please check your connection.';
+    showError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -242,200 +353,489 @@ const AddPayment = () => {
     }).format(amount || 0);
   };
 
-  const inputClasses = "w-full px-3 py-2 border rounded-lg focus:outline-none border-[#E2E8F0] transition-all bg-white text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
-
+  // Label component
   const Label = ({ children, required }) => (
-    <label className="block text-xs font-semibold mb-1" style={{ color: '#4B5568' }}>
-      {children} {required && <span className="text-red-500">*</span>}
-    </label>
+    <Typography sx={{ 
+      fontSize: '0.7rem', 
+      fontWeight: 600, 
+      color: COLORS.text.secondary, 
+      letterSpacing: '0.5px',
+      mb: 0.5
+    }}>
+      {children} {required && <span style={{ color: '#EF4444' }}>*</span>}
+    </Typography>
   );
 
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 1.5,
+      fontSize: '0.75rem',
+      '&:hover fieldset': { borderColor: COLORS.primary },
+      '&.Mui-focused fieldset': { borderColor: COLORS.primary, borderWidth: 1 }
+    },
+    '& .MuiInputBase-input': {
+      py: 1,
+      px: 1.5,
+      fontSize: '0.75rem',
+      color: COLORS.text.primary,
+      '&::placeholder': {
+        color: COLORS.text.tertiary,
+        fontSize: '0.75rem'
+      }
+    }
+  };
+
+  const paymentModes = [
+    { value: 'cash', label: 'Cash', icon: PaymentIcon, color: '#2E7D32' },
+    { value: 'upi', label: 'UPI', icon: AccountBalanceIcon, color: '#1976D2' },
+    { value: 'bank', label: 'Bank Transfer', icon: AccountBalanceIcon, color: '#F57C00' },
+    { value: 'cheque', label: 'Cheque', icon: ReceiptIcon, color: '#7B1FA2' }
+  ];
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-shrink-0 flex justify-between items-center flex-wrap gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/payments')} className="p-2 rounded-lg hover:bg-gray-100">
-            <ArrowLeft className="w-5 h-5" style={{ color: '#2E7D32' }} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: '#1B5E20' }}>Record Payment</h1>
-            <p className="text-xs mt-0.5" style={{ color: '#8D6E63' }}>Record a new payment from farmer</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => navigate('/payments')} className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border hover:bg-gray-50"
-            style={{ borderColor: '#C8E6C9', color: '#8D6E63' }}>
-            <X className="w-4 h-4" /> Cancel
-          </button>
-          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 hover:scale-105 disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #2E7D32, #43A047)' }}>
-            {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+    <Box sx={{  height: '100%', overflow: 'auto' }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <IconButton 
+          onClick={() => navigate('/payments')} 
+          sx={{ 
+            p: 1, 
+            borderRadius: 1.5,
+            '&:hover': { bgcolor: COLORS.primaryLight }
+          }}
+        >
+          <ArrowBackIcon sx={{ color: COLORS.primary }} />
+        </IconButton>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.text.primary }}>
             Record Payment
-          </button>
-        </div>
-      </div>
+          </Typography>
+          <Typography variant="caption" sx={{ color: COLORS.text.tertiary }}>
+            Record a new payment from farmer
+          </Typography>
+        </Box>
+      </Box>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 text-red-500" />
-          <span className="text-xs text-red-600 flex-1">{error}</span>
-          <button onClick={() => setError('')}><X className="w-3 h-3 text-red-500" /></button>
-        </div>
-      )}
+      {/* Floating Error Alert */}
+      <Box sx={{ mb: 2 }}>
+        <FloatingErrorAlert error={error} onClose={() => setError('')} />
+      </Box>
 
+      {/* Success Message */}
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
-          <CheckCircle className="w-4 h-4 text-green-500" />
-          <span className="text-sm text-green-700">Payment recorded successfully! Redirecting...</span>
-        </div>
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+          Payment recorded successfully! Redirecting...
+        </Alert>
       )}
 
-      <div className="flex-1 overflow-y-auto pr-2">
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b" style={{ background: '#F1F8E9', borderColor: '#C8E6C9' }}>
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4" style={{ color: '#2E7D32' }} />
-              <h2 className="text-base font-semibold" style={{ color: '#1B5E20' }}>Payment Information</h2>
-            </div>
-          </div>
-          <div className="p-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <Label required>SELECT FARMER</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <select
-                    value={selectedFarmer?._id || ''}
-                    onChange={(e) => handleFarmerSelect(e.target.value)}
-                    className={`${inputClasses} pl-10`}
-                  >
-                    <option value="">Select a farmer</option>
-                    {farmers.map(farmer => (
-                      <option key={farmer._id} value={farmer._id}>
-                        {farmer.name} - {farmer.mobile} ({farmer.village || farmer.city})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {selectedFarmer && (
-                  <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-xs text-gray-600">Selected Farmer</p>
-                        <p className="text-sm font-semibold text-green-800">{selectedFarmer.name}</p>
-                        <p className="text-xs text-gray-600 flex items-center gap-1"><Phone className="w-3 h-3" /> {selectedFarmer.mobile}</p>
-                      </div>
-                      <div><p className="text-xs text-gray-500">Pending Dues</p><p className="text-sm font-bold text-orange-600">{formatCurrency(selectedFarmer.pendingDues || 0)}</p></div>
-                    </div>
-                  </div>
+      {/* Form Content */}
+      <Paper sx={{ borderRadius: 2.5, overflow: 'hidden', border: `1px solid ${COLORS.border}` }}>
+        <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${COLORS.border}`, bgcolor: COLORS.background.white }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <CreditCardIcon sx={{ fontSize: '1.25rem', color: COLORS.primary }} />
+            <Typography sx={{ fontWeight: 600, color: COLORS.text.primary }}>Payment Information</Typography>
+          </Stack>
+        </Box>
+        <Box sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+            {/* SELECT FARMER - First column */}
+            <Box>
+              <Label required>SELECT FARMER</Label>
+              <Autocomplete
+                fullWidth
+                options={farmers}
+                loading={loadingFarmers}
+                value={selectedFarmer}
+                onChange={handleFarmerChange}
+                getOptionLabel={(option) => `${option.name} - ${option.mobile} (${option.village || option.city})`}
+                isOptionEqualToValue={(option, value) => option._id === value?._id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    placeholder="Search and select a farmer"
+                    sx={inputSx}
+                  />
                 )}
-              </div>
-
-              <div>
-                <Label required>SELECT PURCHASE</Label>
-                <div className="relative">
-                  <Truck className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <select
-                    value={formData.purchaseId}
-                    onChange={(e) => handlePurchaseSelect(e.target.value)}
-                    className={`${inputClasses} pl-10 ${fieldErrors.purchaseId ? 'border-red-500' : ''}`}
-                    disabled={!selectedFarmer || loadingPurchases}
-                  >
-                    <option value="">{loadingPurchases ? 'Loading purchases...' : 'Select a purchase'}</option>
-                    {purchases.map(purchase => (
-                      <option key={purchase._id} value={purchase._id}>
-                        {purchase.receiptNumber} - Due: {formatCurrency(purchase.amountDue)} ({new Date(purchase.purchaseDate).toLocaleDateString()})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {fieldErrors.purchaseId && <p className="text-xs text-red-500 mt-1">{fieldErrors.purchaseId}</p>}
-                
-                {selectedPurchase && (
-                  <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-xs text-gray-600">Purchase Details</p>
-                        <p className="text-sm font-semibold text-blue-800">{selectedPurchase.receiptNumber}</p>
-                        <p className="text-xs text-gray-600">Date: {new Date(selectedPurchase.purchaseDate).toLocaleDateString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">Pending Amount</p>
-                        <p className="text-sm font-bold text-orange-600">{formatCurrency(selectedPurchase.amountDue)}</p>
-                      </div>
-                    </div>
-                  </div>
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>
+                          {option.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.7rem', color: COLORS.text.tertiary }}>
+                          {option.mobile} • {option.village || option.city}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>
+                          Pending Dues
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: '#FF6F00' }}>
+                          {formatCurrency(option.pendingDues || 0)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </li>
                 )}
-              </div>
+                ListboxProps={{
+                  sx: {
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '& .MuiAutocomplete-option': {
+                      fontSize: '0.75rem',
+                      py: 1,
+                      px: 1.5
+                    }
+                  }
+                }}
+              />
+              {selectedFarmer && (
+                <Box sx={{ mt: 2, p: 1.5, bgcolor: COLORS.primaryLight, borderRadius: 1.5 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>Selected Farmer</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.75rem', color: COLORS.text.primary }}>
+                        {selectedFarmer.name}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem', color: COLORS.text.tertiary }}>
+                        {selectedFarmer.mobile}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>Pending Dues</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: '#FF6F00' }}>
+                        {formatCurrency(selectedFarmer.pendingDues || 0)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              )}
+            </Box>
 
-              <div>
-                <Label required>PAYMENT DATE</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="date" name="paymentDate" value={formData.paymentDate} onChange={handleChange} className={`${inputClasses} pl-10`} />
-                </div>
-              </div>
+            {/* SELECT PURCHASE - Second column */}
+            <Box>
+              <Label required>SELECT PURCHASE</Label>
+              <Autocomplete
+                fullWidth
+                options={purchases}
+                loading={loadingPurchases}
+                value={selectedPurchase}
+                onChange={handlePurchaseChange}
+                getOptionLabel={(option) => `${option.receiptNumber} - Due: ${formatCurrency(option.amountDue)} (${new Date(option.purchaseDate).toLocaleDateString()})`}
+                isOptionEqualToValue={(option, value) => option._id === value?._id}
+                disabled={!selectedFarmer}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    size="small"
+                    placeholder={!selectedFarmer ? 'Select a farmer first' : (loadingPurchases ? 'Loading purchases...' : 'Select a purchase')}
+                    error={!!fieldErrors.purchaseId}
+                    helperText={fieldErrors.purchaseId}
+                    sx={inputSx}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.75rem' }}>
+                          {option.receiptNumber}
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.7rem', color: COLORS.text.tertiary }}>
+                          Date: {new Date(option.purchaseDate).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>
+                          Due Amount
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: '#FF6F00' }}>
+                          {formatCurrency(option.amountDue)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </li>
+                )}
+                ListboxProps={{
+                  sx: {
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '& .MuiAutocomplete-option': {
+                      fontSize: '0.75rem',
+                      py: 1,
+                      px: 1.5
+                    }
+                  }
+                }}
+              />
+              {selectedPurchase && (
+                <Box sx={{ mt: 2, p: 1.5, bgcolor: '#E3F2FD', borderRadius: 1.5 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>Purchase Details</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.75rem', color: '#1565C0' }}>
+                        {selectedPurchase.receiptNumber}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem', color: COLORS.text.tertiary }}>
+                        Date: {new Date(selectedPurchase.purchaseDate).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.65rem', color: COLORS.text.tertiary }}>Pending Amount</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.75rem', color: '#FF6F00' }}>
+                        {formatCurrency(selectedPurchase.amountDue)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+              )}
+            </Box>
 
-              <div>
-                <Label required>AMOUNT</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="number" name="amount" value={formData.amount} onChange={handleChange} placeholder="Enter amount" className={`${inputClasses} pl-10 ${fieldErrors.amount ? 'border-red-500' : ''}`} />
-                </div>
-                {fieldErrors.amount && <p className="text-xs text-red-500 mt-1">{fieldErrors.amount}</p>}
-              </div>
+            {/* PAYMENT DATE - First column */}
+            <Box>
+              <Label required>PAYMENT DATE</Label>
+              <TextField
+                fullWidth
+                type="date"
+                size="small"
+                name="paymentDate"
+                value={formData.paymentDate}
+                onChange={handleChange}
+                error={!!fieldErrors.paymentDate}
+                helperText={fieldErrors.paymentDate}
+                sx={inputSx}
+              />
+            </Box>
 
-              <div className="md:col-span-2">
-                <Label required>PAYMENT MODE</Label>
-                <div className="flex gap-3 mt-1 flex-wrap">
-                  {[
-                    { value: 'cash', label: 'Cash', icon: Wallet, color: '#2E7D32' },
-                    { value: 'upi', label: 'UPI', icon: TrendingUp, color: '#1976D2' },
-                    { value: 'bank', label: 'Bank Transfer', icon: Building, color: '#F57C00' },
-                    { value: 'cheque', label: 'Cheque', icon: CreditCard, color: '#7B1FA2' }
-                  ].map(mode => {
-                    const Icon = mode.icon;
-                    return (
-                      <button key={mode.value} type="button" onClick={() => setFormData(prev => ({ ...prev, paymentMode: mode.value }))}
-                        className={`flex-1 py-2 px-3 rounded-lg border flex items-center justify-center gap-2 transition-all ${formData.paymentMode === mode.value ? 'text-white shadow-md' : 'hover:bg-gray-50'}`}
-                        style={{ borderColor: '#C8E6C9', background: formData.paymentMode === mode.value ? mode.color : 'white', color: formData.paymentMode === mode.value ? 'white' : '#666' }}>
-                        <Icon className="w-4 h-4" /><span className="text-sm">{mode.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+            {/* AMOUNT - Second column */}
+            <Box>
+              <Label required>AMOUNT</Label>
+              <TextField
+                fullWidth
+                type="number"
+                size="small"
+                name="amount"
+                value={formData.amount}
+                onChange={handleChange}
+                placeholder="Enter amount"
+                error={!!fieldErrors.amount}
+                helperText={fieldErrors.amount}
+                sx={inputSx}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                }}
+              />
+            </Box>
 
-              {(formData.paymentMode === 'upi' || formData.paymentMode === 'bank') && (
-                <div className="md:col-span-2">
+            {/* PAYMENT MODE - spans both columns */}
+            <Box sx={{ gridColumn: 'span 2' }}>
+              <Label required>PAYMENT MODE</Label>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5 }}>
+                {paymentModes.map(mode => {
+                  const Icon = mode.icon;
+                  const isSelected = formData.paymentMode === mode.value;
+                  return (
+                    <Button
+                      key={mode.value}
+                      variant={isSelected ? 'contained' : 'outlined'}
+                      onClick={() => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          paymentMode: mode.value,
+                          // Clear bank name when switching from bank mode
+                          ...(mode.value !== 'bank' && mode.value !== 'cheque' && { bankName: '' })
+                        }));
+                      }}
+                      sx={{
+                        py: 1,
+                        px: 1.5,
+                        borderRadius: 1.5,
+                        textTransform: 'none',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        borderColor: COLORS.border,
+                        ...(isSelected && {
+                          bgcolor: mode.color,
+                          '&:hover': { bgcolor: mode.color }
+                        })
+                      }}
+                    >
+                      <Icon sx={{ fontSize: '1rem', mr: 0.5 }} />
+                      {mode.label}
+                    </Button>
+                  );
+                })}
+              </Box>
+            </Box>
+
+            {/* UPI Fields */}
+            {formData.paymentMode === 'upi' && (
+              <Box sx={{ gridColumn: 'span 2' }}>
+                <Label required>REFERENCE NUMBER</Label>
+                <TextField
+                  fullWidth
+                  size="small"
+                  name="referenceNumber"
+                  value={formData.referenceNumber}
+                  onChange={handleChange}
+                  placeholder="UPI Transaction ID"
+                  error={!!fieldErrors.referenceNumber}
+                  helperText={fieldErrors.referenceNumber}
+                  sx={inputSx}
+                />
+              </Box>
+            )}
+
+            {/* Bank Transfer Fields */}
+            {formData.paymentMode === 'bank' && (
+              <>
+                <Box sx={{ gridColumn: 'span 2' }}>
                   <Label required>REFERENCE NUMBER</Label>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="text" name="referenceNumber" value={formData.referenceNumber} onChange={handleChange}
-                      placeholder={formData.paymentMode === 'upi' ? 'UPI Transaction ID' : 'Bank Reference Number'}
-                      className={`${inputClasses} pl-10 ${fieldErrors.referenceNumber ? 'border-red-500' : ''}`} />
-                  </div>
-                </div>
-              )}
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="referenceNumber"
+                    value={formData.referenceNumber}
+                    onChange={handleChange}
+                    placeholder="Transaction Reference Number"
+                    error={!!fieldErrors.referenceNumber}
+                    helperText={fieldErrors.referenceNumber}
+                    sx={inputSx}
+                  />
+                </Box>
+                <Box sx={{ gridColumn: 'span 2' }}>
+                  <Label required>BANK NAME</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="bankName"
+                    value={formData.bankName}
+                    onChange={handleChange}
+                    placeholder="Enter bank name"
+                    error={!!fieldErrors.bankName}
+                    helperText={fieldErrors.bankName}
+                    sx={inputSx}
+                  />
+                </Box>
+              </>
+            )}
 
-              {formData.paymentMode === 'cheque' && (
-                <>
-                  <div><Label required>CHEQUE NUMBER</Label><input type="text" name="chequeNumber" value={formData.chequeNumber} onChange={handleChange} placeholder="Cheque number" className={inputClasses} /></div>
-                  <div><Label required>CHEQUE DATE</Label><input type="date" name="chequeDate" value={formData.chequeDate} onChange={handleChange} className={inputClasses} /></div>
-                  <div className="md:col-span-2"><Label required>BANK NAME</Label><input type="text" name="bankName" value={formData.bankName} onChange={handleChange} placeholder="Bank name" className={inputClasses} /></div>
-                </>
-              )}
+            {/* Cheque Fields */}
+            {formData.paymentMode === 'cheque' && (
+              <>
+                <Box>
+                  <Label required>CHEQUE NUMBER</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="chequeNumber"
+                    value={formData.chequeNumber}
+                    onChange={handleChange}
+                    placeholder="Cheque number"
+                    error={!!fieldErrors.chequeNumber}
+                    helperText={fieldErrors.chequeNumber}
+                    sx={inputSx}
+                  />
+                </Box>
+                <Box>
+                  <Label required>CHEQUE DATE</Label>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    size="small"
+                    name="chequeDate"
+                    value={formData.chequeDate}
+                    onChange={handleChange}
+                    error={!!fieldErrors.chequeDate}
+                    helperText={fieldErrors.chequeDate}
+                    sx={inputSx}
+                  />
+                </Box>
+                <Box sx={{ gridColumn: 'span 2' }}>
+                  <Label required>BANK NAME</Label>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    name="bankName"
+                    value={formData.bankName}
+                    onChange={handleChange}
+                    placeholder="Bank name"
+                    error={!!fieldErrors.bankName}
+                    helperText={fieldErrors.bankName}
+                    sx={inputSx}
+                  />
+                </Box>
+              </>
+            )}
 
-              <div className="md:col-span-2">
-                <Label>NOTES</Label>
-                <textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Any additional notes..." rows="3" className={`${inputClasses} resize-none`} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            {/* NOTES - spans both columns */}
+            <Box sx={{ gridColumn: 'span 2' }}>
+              <Label>NOTES</Label>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                size="small"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                placeholder="Any additional notes..."
+                sx={inputSx}
+              />
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Submit Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 3, pb: 2, mt: 2 }}>
+        <Button
+          onClick={() => navigate('/payments')}
+          sx={{
+            height: 32,
+            px: 2,
+            borderRadius: 1.5,
+            border: `1px solid ${COLORS.border}`,
+            color: COLORS.text.secondary,
+            fontSize: '0.7rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            '&:hover': {
+              borderColor: COLORS.primary,
+              bgcolor: `${COLORS.primary}10`
+            }
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          variant="contained"
+          sx={{
+            height: 32,
+            px: 2,
+            borderRadius: 1.5,
+            bgcolor: COLORS.primary,
+            fontSize: '0.7rem',
+            fontWeight: 500,
+            textTransform: 'none',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+            '&:hover': {
+              bgcolor: COLORS.primaryDark,
+            },
+            '&:disabled': {
+              bgcolor: COLORS.border,
+              color: COLORS.text.tertiary
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={16} sx={{ color: 'white' }} /> : 'Record Payment'}
+        </Button>
+      </Box>
+    </Box>
   );
 };
 

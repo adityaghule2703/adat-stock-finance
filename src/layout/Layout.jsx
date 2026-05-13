@@ -26,8 +26,27 @@ const Layout = () => {
     };
   }, [isMobileSidebarOpen]);
 
+  // Add print event listeners to hide sidebar and header when printing
+  useEffect(() => {
+    const handleBeforePrint = () => {
+      document.body.classList.add('printing');
+    };
+
+    const handleAfterPrint = () => {
+      document.body.classList.remove('printing');
+    };
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
+
   return (
-    <div style={{ background: '#F5F5DC' }}> {/* Warm earthy background */}
+    <div style={{ background: '#F5F5DC' }} className="print:bg-white"> {/* Warm earthy background */}
       <Header onMenuClick={() => setIsMobileSidebarOpen(true)} />
       
       {/* Desktop Sidebar */}
@@ -41,7 +60,7 @@ const Layout = () => {
       
       {/* Main Content - Disabled when mobile sidebar is open */}
       <main 
-        className={`lg:ml-72 mt-16 p-4 sm:p-6 lg:p-8 transition-all duration-300 ${
+        className={`lg:ml-72 mt-16 p-4 sm:p-6 lg:p-8 transition-all duration-300 print:p-0 print:m-0 ${
           isMobileSidebarOpen ? 'pointer-events-none opacity-50' : 'pointer-events-auto opacity-100'
         }`}
         style={{ 
@@ -50,7 +69,7 @@ const Layout = () => {
           overflowX: 'hidden'
         }}
       >
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto print:max-w-none print:mx-0">
           <Outlet />
         </div>
       </main>
